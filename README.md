@@ -1,6 +1,6 @@
 # Daybook
 
-A small, local worker attendance and payroll app. It uses Python's standard library for the API and SQLite for persistent storage; no packages are needed.
+A worker attendance and payroll app with a Python API and SQLite for local use. It can also run on Vercel with Turso for persistent hosted storage.
 
 ## Run
 
@@ -11,6 +11,17 @@ python app.py
 ```
 
 Then open http://127.0.0.1:8000. Worker and attendance data is stored in `payroll.db` beside `app.py`. Set the `PORT` or `PAYROLL_DB` environment variable to change the port or database location.
+
+## Deploy to Vercel
+
+Import the Git repository into Vercel and add these Production environment variables in **Project Settings → Environment Variables**:
+
+- `TURSO_DATABASE_URL`: the Turso database URL (usually `libsql://...turso.io`)
+- `TURSO_AUTH_TOKEN`: a database auth token; keep it private and never commit it
+- `APP_PASSWORD`: an admin password of at least 12 characters
+- `APP_SESSION_SECRET`: a private random secret of at least 32 characters
+
+Deploy or redeploy after setting the variables. The app requires the admin password on Vercel; set both secrets in Vercel and never commit or share them. The first API request creates the worker and attendance tables in Turso. Vercel serves the static UI from `public/` and routes `/api/*` requests through the Python function in `api/index.py`. Local development continues to use SQLite without a login.
 
 ## Payroll calculation
 
