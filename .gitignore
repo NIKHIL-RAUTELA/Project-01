@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+payroll.db
+payroll.db-journal
+payroll.db-shm
+payroll.db-wal
