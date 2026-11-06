@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11142b">
+  <title>Daybook — Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body data-page="attendance">
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="Daybook home"><span class="brand-mark">d</span><span>daybook<span class="brand-period">.</span></span></a>
+    <div class="workspace-label">WORKSPACE</div>
+    <nav aria-label="Main navigation">
+      <a class="nav-link" href="/"><span class="nav-icon">▦</span>Home</a>
+      <a class="nav-link" href="/people.html"><span class="nav-icon">♙</span>Peoples</a>
+      <a class="nav-link active" href="/attendance.html" aria-current="page"><span class="nav-icon">▤</span>Attendance</a>
+      <a class="nav-link" href="/salary.html"><span class="nav-icon">₹</span>Salary</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="tip-card"><div class="tip-spark">✳</div><strong>A little more in sync.</strong><p>Keep attendance and payroll together, all month long.</p></div>
+      <div class="profile"><div class="avatar avatar-lilac">JD</div><div><strong>Workspace admin</strong><small>Owner account</small></div><span class="profile-dots">···</span></div>
+    </div>
+  </aside>
+  <main class="main-content">
+    <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>Attendance</strong></div><div class="topbar-right"><span class="today-label" id="today-label"></span><div class="avatar avatar-small">JD</div></div></header>
+    <section class="page-heading">
+      <div><div class="eyebrow"><span class="live-dot"></span> THE DAILY RHYTHM</div><h1>Mark <span>attendance.</span></h1><p class="subtitle">Choose one status for each worker. Changes save automatically.</p></div>
+      <div class="date-controls"><label class="sr-only" for="work-date">Attendance date</label><input id="work-date" type="date"><button class="button button-quiet" id="today-button">Today</button></div>
+    </section>
+    <section class="panel data-panel">
+      <div class="day-callout"><div class="calendar-icon">▦</div><div><strong id="selected-date-title">Attendance</strong><span>Click a circle to mark 8 hours, 12 hours, or absent.</span></div><span class="day-count" id="day-count">0 marked</span></div>
+      <div class="table-wrap">
+        <table id="attendance-table"><thead><tr><th>WORKER</th><th class="choice-heading choice-8">8 HOURS</th><th class="choice-heading choice-12">12 HOURS</th><th class="choice-heading choice-absent">ABSENT</th></tr></thead><tbody id="attendance-rows"></tbody></table>
+        <div class="empty-state" id="attendance-empty" hidden><div class="empty-illustration"><span>♙</span><i>＋</i></div><h3>Add your people first.</h3><p>Your worker list will appear here so you can mark their daily hours.</p><a class="button button-primary button-link" href="/people.html">Go to Peoples</a></div>
+      </div>
+      <div class="table-footer"><span>Attendance for each worker and date can be updated at any time.</span><span id="attendance-save-note"></span></div>
+    </section>
+    <footer class="footer"><span>Made for the people who make it happen <span class="footer-heart">♥</span></span><span>Daybook <span class="footer-separator">·</span> People & pay, in one place</span></footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

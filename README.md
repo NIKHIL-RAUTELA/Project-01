@@ -27,4 +27,4 @@ The monthly salary entered for each worker is the full-month amount for a 12-hou
 
 `earned pay = monthly salary / days in month / 12 × recorded attendance hours`
 
-Only recorded 8-hour and 12-hour shifts contribute to pay; an absent day is 0 hours. Attendance is recorded per worker and date, and can be changed by selecting another option.
+The website has separate Home, Peoples, Attendance, and Salary pages. Add worker names, roles, and monthly salary from Peoples; mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; and review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
