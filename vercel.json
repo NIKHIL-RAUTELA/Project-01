@@ -1,8 +1,20 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index?path=:path*"
+      "source": "/api/dashboard",
+      "destination": "/api/index?path=dashboard"
+    },
+    {
+      "source": "/api/workers",
+      "destination": "/api/index?path=workers"
+    },
+    {
+      "source": "/api/attendance",
+      "destination": "/api/index?path=attendance"
+    },
+    {
+      "source": "/api/workers/:workerId",
+      "destination": "/api/index?path=workers/:workerId"
     }
   ]
 }
