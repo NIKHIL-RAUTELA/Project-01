@@ -261,12 +261,12 @@ if (page === "attendance") {
   $("#date-next").addEventListener("click", () => shiftDate(1));
   $("#today-button").addEventListener("click", () => selectDate(localDate(today)));
   workDate.addEventListener("change", () => selectDate(workDate.value));
-  $("#attendance-rows").addEventListener("click", async (event) => {
-    const radio = event.target.closest('input[type="radio"][data-worker]');
+  const saveAttendance = async (radio) => {
     if (!radio || radio.disabled) return;
     const attendanceDate = selectedWorkDate;
     const workerId = Number(radio.dataset.worker);
     const hours = Number(radio.value);
+    radio.checked = true;
     const group = $$("#attendance-rows input[data-worker]").filter((input) => input.dataset.worker === radio.dataset.worker);
     group.forEach((input) => { input.disabled = true; });
     $("#attendance-save-note").textContent = "Saving…";
@@ -293,6 +293,15 @@ if (page === "attendance") {
       if (attendanceDate === selectedWorkDate) renderAttendance();
       group.forEach((input) => { input.disabled = false; });
     }
+  };
+  $("#attendance-rows").addEventListener("click", (event) => {
+    const label = event.target.closest(".choice-label");
+    const radio = label?.querySelector('input[type="radio"][data-worker]');
+    if (radio) void saveAttendance(radio);
+  });
+  $("#attendance-rows").addEventListener("change", (event) => {
+    const radio = event.target.closest('input[type="radio"][data-worker]');
+    if (radio) void saveAttendance(radio);
   });
 }
 
