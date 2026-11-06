@@ -1,6 +1,5 @@
 import logging
 import math
-import os
 import re
 from calendar import monthrange
 from datetime import date
@@ -8,7 +7,7 @@ from datetime import date
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api import auth, turso
+from api import turso
 
 
 MONTH_PATTERN = re.compile(r"^\d{4}-\d{2}$")
@@ -81,51 +80,6 @@ async def _dispatch(request):
         path = request.url.path.removeprefix("/api/").strip("/")
     path = path.strip("/")
     method = request.method
-
-    if path == "auth" and method == "GET":
-        configuration = auth.settings()
-        if configuration is None:
-            return {"required": False, "authenticated": True}
-        return {
-            "required": True,
-            "authenticated": auth.is_authenticated(
-                request.cookies.get(auth.COOKIE_NAME), configuration[1]
-            ),
-        }
-
-    if path == "auth/login" and method == "POST":
-        configuration = auth.settings()
-        if configuration is None:
-            return {"required": False, "authenticated": True}
-        try:
-            body = await request.json()
-        except (ValueError, UnicodeDecodeError):
-            raise APIError(400, "Please send a valid JSON request.")
-        password = body.get("password") if isinstance(body, dict) else None
-        if not auth.verify_password(password, configuration[0]):
-            raise APIError(401, "Incorrect password.")
-        response = JSONResponse({"authenticated": True})
-        response.set_cookie(
-            auth.COOKIE_NAME,
-            auth.create_session(configuration[1]),
-            max_age=auth.SESSION_SECONDS,
-            httponly=True,
-            secure=bool(os.environ.get("VERCEL")),
-            samesite="strict",
-            path="/",
-        )
-        return response
-
-    if path == "auth/logout" and method == "POST":
-        response = JSONResponse({"authenticated": False})
-        response.delete_cookie(auth.COOKIE_NAME, path="/", httponly=True, samesite="strict")
-        return response
-
-    configuration = auth.settings()
-    if configuration is not None and not auth.is_authenticated(
-        request.cookies.get(auth.COOKIE_NAME), configuration[1]
-    ):
-        raise APIError(401, "Please sign in to access worker and payroll data.")
 
     if method == "GET" and path == "dashboard":
         month = request.query_params.get("month", date.today().strftime("%Y-%m"))
@@ -219,12 +173,6 @@ async def route(request: Request, path: str):
         return await _dispatch(request)
     except APIError as error:
         return JSONResponse(status_code=error.status, content={"error": error.message})
-    except auth.AuthConfigurationError:
-        logging.exception("Daybook access protection is not configured correctly")
-        return JSONResponse(
-            status_code=503,
-            content={"error": "The site's admin password protection is not configured correctly."},
-        )
     except turso.TursoError:
         logging.exception("Turso database request failed")
         return JSONResponse(

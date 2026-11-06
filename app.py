@@ -78,8 +78,6 @@ class Handler(BaseHTTPRequestHandler):
                 if parsed.path == "/api/dashboard":
                     month = parse_qs(parsed.query).get("month", [date.today().strftime("%Y-%m")])[0]
                     self.send_json(200, self.dashboard(month))
-                elif parsed.path == "/api/auth":
-                    self.send_json(200, {"required": False, "authenticated": True})
                 elif parsed.path == "/api/workers":
                     with connect() as db:
                         workers = db.execute("SELECT id, name, role, salary FROM workers ORDER BY name COLLATE NOCASE").fetchall()

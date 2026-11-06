@@ -97,10 +97,6 @@ async function loadDashboard() {
     dashboard = await request(`/api/dashboard?month=${encodeURIComponent(month)}`);
     render();
   } catch (error) {
-    if (error.status === 401) {
-      showLogin("Your session expired. Please sign in again.");
-      return;
-    }
     showToast(error.message, true);
   }
 }
@@ -184,59 +180,4 @@ $("#worker-form").addEventListener("submit", async (event) => {
   }
 });
 
-const loginScreen = $("#login-screen");
-const loginError = $("#login-error");
-const showLogin = (message = "") => {
-  loginError.textContent = message;
-  loginScreen.hidden = false;
-  $("#sign-out").hidden = true;
-  $("#login-password").focus();
-};
-
-async function checkAccess() {
-  try {
-    const access = await request("/api/auth");
-    if (!access.required || access.authenticated) {
-      loginScreen.hidden = true;
-      $("#sign-out").hidden = !access.required;
-      await loadDashboard();
-      return;
-    }
-    showLogin();
-  } catch (error) {
-    showLogin(error.message);
-  }
-}
-
-$("#login-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const passwordInput = $("#login-password");
-  const submit = $("#login-submit");
-  submit.disabled = true;
-  loginError.textContent = "";
-  try {
-    await request("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ password: passwordInput.value }),
-    });
-    passwordInput.value = "";
-    await checkAccess();
-  } catch (error) {
-    passwordInput.value = "";
-    passwordInput.focus();
-    loginError.textContent = error.message;
-  } finally {
-    submit.disabled = false;
-  }
-});
-
-$("#sign-out").addEventListener("click", async () => {
-  try {
-    await request("/api/auth/logout", { method: "POST", body: "{}" });
-    showLogin("You have signed out.");
-  } catch (error) {
-    showToast(error.message, true);
-  }
-});
-
-checkAccess();
+loadDashboard();

@@ -18,10 +18,8 @@ Import the Git repository into Vercel and add these Production environment varia
 
 - `TURSO_DATABASE_URL`: the Turso database URL (usually `libsql://...turso.io`)
 - `TURSO_AUTH_TOKEN`: a database auth token; keep it private and never commit it
-- `APP_PASSWORD`: an admin password of at least 12 characters
-- `APP_SESSION_SECRET`: a private random secret of at least 32 characters
 
-Deploy or redeploy after setting the variables. The app requires the admin password on Vercel; set both secrets in Vercel and never commit or share them. The first API request creates the worker and attendance tables in Turso. Vercel serves the static UI from `public/` and routes `/api/*` requests through the Python function in `api/index.py`. Local development continues to use SQLite without a login.
+Deploy or redeploy after setting the variables. Daybook does not require an admin password; its worker, attendance, and payroll data and API are accessible to anyone who can reach the site. Do not deploy it publicly with real payroll data unless that access is acceptable. The first API request creates the worker and attendance tables in Turso. Vercel serves the static UI from `public/` and routes `/api/*` requests through the Python function in `api/index.py`. Local development continues to use SQLite.
 
 ## Payroll calculation
 
