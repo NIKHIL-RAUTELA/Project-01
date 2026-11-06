@@ -77,7 +77,13 @@ def _execute(statements):
         with urlopen(request, timeout=15) as response:
             payload = json.loads(response.read())
     except HTTPError as error:
-        raise TursoError(f"Turso request failed with HTTP {error.code}.") from error
+        detail = error.read(2048).decode("utf-8", "replace").strip()
+        if token in detail:
+            detail = detail.replace(token, "[redacted]")
+        message = f"Turso request failed with HTTP {error.code}."
+        if detail:
+            message = f"{message} {detail}"
+        raise TursoError(message) from error
     except (URLError, TimeoutError, json.JSONDecodeError) as error:
         raise TursoError("Could not connect to the Turso database.") from error
 
