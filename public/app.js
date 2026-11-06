@@ -261,31 +261,36 @@ if (page === "attendance") {
   $("#date-next").addEventListener("click", () => shiftDate(1));
   $("#today-button").addEventListener("click", () => selectDate(localDate(today)));
   workDate.addEventListener("change", () => selectDate(workDate.value));
-  $("#attendance-rows").addEventListener("change", async (event) => {
+  $("#attendance-rows").addEventListener("click", async (event) => {
     const radio = event.target.closest('input[type="radio"][data-worker]');
-    if (!radio) return;
+    if (!radio || radio.disabled) return;
     const attendanceDate = selectedWorkDate;
+    const workerId = Number(radio.dataset.worker);
+    const hours = Number(radio.value);
     const group = $$("#attendance-rows input[data-worker]").filter((input) => input.dataset.worker === radio.dataset.worker);
     group.forEach((input) => { input.disabled = true; });
+    $("#attendance-save-note").textContent = "Saving…";
     try {
       await request("/api/attendance", {
         method: "POST",
         body: JSON.stringify({
-          workerId: Number(radio.dataset.worker),
+          workerId,
           date: attendanceDate,
-          hours: Number(radio.value),
+          hours,
         }),
       });
-      await loadDashboard(selectedMonth);
+      if (dashboard?.month === monthOf(attendanceDate)) {
+        const worker = dashboard.workers.find((item) => item.id === workerId);
+        if (worker) worker.attendance[attendanceDate] = hours;
+      }
+      if (attendanceDate === selectedWorkDate) renderAttendance();
+      $("#attendance-save-note").textContent = "Saved";
       showToast("Attendance saved.");
+      void loadDashboard(selectedMonth);
     } catch (error) {
       showToast(error.message, true);
-      radio.checked = false;
-      const previous = dashboard?.workers.find((worker) => worker.id === Number(radio.dataset.worker))?.attendance[attendanceDate];
-      if (previous !== undefined && attendanceDate === selectedWorkDate) {
-        const previousRadio = $(`#attendance-rows input[data-worker="${radio.dataset.worker}"][value="${previous}"]`);
-        if (previousRadio) previousRadio.checked = true;
-      }
+      $("#attendance-save-note").textContent = "Save failed. Please try again.";
+      if (attendanceDate === selectedWorkDate) renderAttendance();
       group.forEach((input) => { input.disabled = false; });
     }
   });
