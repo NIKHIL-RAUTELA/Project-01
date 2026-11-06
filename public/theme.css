@@ -1,0 +1,564 @@
+:root {
+  color-scheme: dark;
+  color: #e8e9f2;
+  background: #0a0d16;
+  --navy: #101523;
+  --muted: #9a9fb2;
+  --lav: #c1a8ff;
+  --purple: #a78bfa;
+  --line: #272d3d;
+}
+
+body {
+  color: #e8e9f2;
+  background:
+    radial-gradient(ellipse at 82% -18%, #222143 0, transparent 38rem),
+    #0a0d16;
+}
+
+.sidebar {
+  background: linear-gradient(180deg, #12182a, #0d111d);
+  border-right: 1px solid #252b3b;
+  box-shadow: 12px 0 36px #05070d38;
+}
+
+.brand {
+  gap: 12px;
+  font-size: 22px;
+  letter-spacing: -1.2px;
+}
+
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d5c7ff55;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #9d7af1, #6e5ac7 72%, #5750ad);
+  box-shadow: 0 5px 16px #8063dc55, inset 0 1px #ffffff57;
+  transform: none;
+}
+
+.brand-mark svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brand-period,
+.nav-icon {
+  color: #c6afff;
+}
+
+.workspace-label,
+.profile small,
+.profile-dots {
+  color: #858da5;
+}
+
+.nav-link {
+  color: #a9b0c4;
+}
+
+.nav-link:hover {
+  background: #20283a;
+  color: #fff;
+}
+
+.nav-link.active {
+  background: linear-gradient(100deg, #3b3159, #282844);
+  box-shadow: inset 2px 0 #b89bff;
+  color: #fff;
+}
+
+.tip-card {
+  border-color: #343148;
+  background: linear-gradient(145deg, #1d2036, #151a2a);
+}
+
+.profile {
+  border-color: #2a3040;
+}
+
+.main-content {
+  color: #e8e9f2;
+}
+
+.topbar {
+  border-color: #252b39;
+}
+
+.breadcrumb {
+  color: #8e95aa;
+}
+
+.breadcrumb strong,
+.today-label {
+  color: #b6bbca;
+}
+
+.breadcrumb span {
+  color: #51586b;
+}
+
+.avatar-lilac,
+.avatar-small {
+  background: #302b4b;
+  color: #d3c4ff;
+}
+
+h1,
+.section-heading h2,
+.dialog-top h2 {
+  color: #f0eff8;
+}
+
+h1 span,
+.heading-dot {
+  color: #b39af8;
+}
+
+.eyebrow,
+.section-kicker {
+  color: #aa96e4;
+}
+
+.live-dot {
+  background: #72d6a0;
+  box-shadow: 0 0 0 3px #72d6a01e, 0 0 12px #72d6a044;
+}
+
+.subtitle,
+.section-heading p,
+.dialog-top p {
+  color: #9aa1b4;
+}
+
+.button-primary {
+  background: linear-gradient(135deg, #9276df, #7057bd);
+  box-shadow: 0 5px 18px #785dc233, inset 0 1px #ffffff30;
+}
+
+.button-primary:hover {
+  background: linear-gradient(135deg, #a188eb, #8066cb);
+}
+
+.button-quiet {
+  border: 1px solid #343b4f;
+  background: #1a2030;
+  color: #c4c9d8;
+}
+
+.button-quiet:hover {
+  border-color: #555070;
+  background: #242a3c;
+  color: #fff;
+}
+
+.stat-card,
+.panel {
+  border-color: #252c3b;
+  background: linear-gradient(145deg, #151b29, #111622);
+  box-shadow: 0 12px 32px #00000017, inset 0 1px #ffffff08;
+}
+
+.stat-dark {
+  border-color: #3a3157;
+  background:
+    radial-gradient(circle at 90% 0, #7861ba3b, transparent 48%),
+    linear-gradient(135deg, #25213b, #171b2b 82%);
+  box-shadow: 0 12px 34px #06071170, inset 0 1px #ffffff10;
+}
+
+.stat-top {
+  color: #a0a6b8;
+}
+
+.stat-dark .stat-top {
+  color: #cbc5e0;
+}
+
+.stat-value {
+  color: #f1f0f8;
+}
+
+.value-unit {
+  color: #a0a6b8;
+}
+
+.stat-foot {
+  color: #8991a5;
+}
+
+.stat-dark .stat-foot {
+  color: #b4b0ca;
+}
+
+.stat-icon {
+  background: #292e42;
+  color: #d1c1ff;
+}
+
+.icon-lilac {
+  background: #302a49;
+  color: #c3adff;
+}
+
+.icon-peach {
+  background: #392d2b;
+  color: #e2ad8c;
+}
+
+.icon-green {
+  background: #20362e;
+  color: #8fd0a5;
+}
+
+.card-orbit {
+  border-color: #ffffff10;
+}
+
+.mini-bars i {
+  background: #beaff5;
+}
+
+.hour-track {
+  background: #343044;
+}
+
+.hour-track span {
+  background: #d3a789;
+}
+
+.day-callout {
+  border-color: #292f40;
+  background: #121826;
+}
+
+.calendar-icon,
+.quick-icon {
+  background: #2b2741;
+  color: #c5b0ff;
+}
+
+.day-callout strong {
+  color: #e2e4ef;
+}
+
+.day-callout span {
+  color: #9299ac;
+}
+
+.day-callout .day-count {
+  background: #292f40;
+  color: #c2c7d6;
+}
+
+thead th {
+  border-color: #2a3040;
+  color: #929aaf;
+}
+
+tbody td {
+  border-color: #242a38;
+  color: #b7bdcd;
+}
+
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+tbody tr:hover {
+  background: #ffffff04;
+}
+
+.worker-avatar {
+  background: #2b2741;
+  color: #d3c4ff;
+}
+
+.worker-name {
+  color: #e2e4ef;
+}
+
+.worker-role {
+  color: #9098ac;
+}
+
+.salary-cell,
+.earned-cell {
+  color: #e0e1ed;
+}
+
+.people-metric {
+  color: #ded8f3;
+  font-weight: 600;
+}
+
+.people-metric span {
+  color: #9198aa;
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.choice-heading,
+.choice-8 {
+  color: #c0a9ff !important;
+}
+
+.choice-12 {
+  color: #86d0a0 !important;
+}
+
+.choice-absent {
+  color: #e39b9b !important;
+}
+
+.choice-circle {
+  border-color: #51586a;
+  background: #141a27;
+}
+
+.choice-label input:checked + .choice-circle {
+  border-color: #a487f0;
+  background: #8065cd;
+}
+
+.choice-12 .choice-label input:checked + .choice-circle {
+  border-color: #71be89;
+  background: #4a9562;
+}
+
+.choice-absent .choice-label input:checked + .choice-circle {
+  border-color: #d98585;
+  background: #a7545c;
+}
+
+.choice-label input:focus-visible + .choice-circle,
+.date-controls input:focus-visible,
+.month-toolbar input:focus-visible,
+.form-field input:focus {
+  outline: 2px solid #ad96f4;
+  outline-offset: 2px;
+}
+
+.choice-text {
+  color: #a1a8ba;
+}
+
+.choice-label input:checked ~ .choice-text {
+  color: #f1eff9;
+}
+
+.table-footer {
+  border-color: #282e3d;
+  color: #9aa1b4;
+}
+
+.empty-illustration {
+  background: #24213a;
+  color: #bca8fa;
+}
+
+.empty-state h3 {
+  color: #e5e5ef;
+}
+
+.empty-state p {
+  color: #969db0;
+}
+
+.quick-link {
+  border-color: #2b3040;
+  background: #121825;
+  color: #e0e2ed;
+}
+
+.quick-link:hover {
+  border-color: #514572;
+  background: #1a2030;
+}
+
+.quick-link small {
+  color: #9aa1b4;
+}
+
+.quick-link > b {
+  color: #b39af8;
+}
+
+.footer {
+  color: #858da2;
+}
+
+.footer-separator {
+  color: #596075;
+}
+
+.toast {
+  border: 1px solid #353c4e;
+  background: #1b2231;
+  box-shadow: 0 12px 32px #0008;
+  color: #e8e9f2;
+}
+
+.toast.error {
+  border-color: #71444c;
+  background: #351e27;
+}
+
+.date-controls input,
+.month-toolbar input,
+.attendance-select {
+  border: 1px solid #343b4e;
+  background-color: #151b29;
+  color: #e1e3ee;
+  color-scheme: dark;
+}
+
+.date-controls input:hover,
+.month-toolbar input:hover {
+  border-color: #575070;
+}
+
+.month-toolbar {
+  color: #a0a7b9;
+}
+
+.month-toolbar strong {
+  color: #e0d8f7;
+  font-weight: 600;
+}
+
+.people-month-toolbar {
+  justify-content: flex-start;
+  margin: -8px 0 16px;
+}
+
+.date-controls {
+  gap: 8px;
+}
+
+.attendance-page-heading .date-controls {
+  flex-shrink: 0;
+}
+
+.date-step {
+  width: 35px;
+  min-width: 35px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.date-controls input[type="date"] {
+  min-width: 158px;
+}
+
+.delete-button {
+  background: #38252d;
+  color: #efaaaa;
+}
+
+.delete-button:hover {
+  background: #4b2d37;
+}
+
+.worker-dialog {
+  border: 1px solid #343b4e;
+  background: linear-gradient(145deg, #1a2030, #111622);
+  box-shadow: 0 24px 80px #000a;
+  color: #e8e9f2;
+}
+
+.worker-dialog::backdrop {
+  background: #05070dc9;
+  backdrop-filter: blur(5px);
+}
+
+.dialog-close {
+  color: #b4bbcd;
+}
+
+.form-field {
+  color: #d5d8e5;
+}
+
+.optional {
+  color: #9299ad;
+}
+
+.form-field > input,
+.salary-input {
+  border-color: #353c4e;
+  background: #111724;
+  color: #e8e9f2;
+}
+
+.form-field input::placeholder {
+  color: #747d92;
+}
+
+.salary-input span {
+  border-color: #353c4e;
+  color: #bba8f1;
+}
+
+.salary-input input {
+  background: transparent;
+  color: #e8e9f2;
+}
+
+.salary-note {
+  background: #23223a;
+  color: #b3b6c8;
+}
+
+.dialog-actions {
+  border-color: #2e3545;
+}
+
+@media (max-width: 700px) {
+  .brand {
+    font-size: 19px;
+  }
+
+  .brand-mark {
+    width: 35px;
+    height: 35px;
+  }
+
+  .date-controls {
+    gap: 5px;
+  }
+
+  .attendance-page-heading {
+    flex-direction: column;
+  }
+
+  .attendance-page-heading .date-controls {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  .date-controls input[type="date"] {
+    min-width: 0;
+    width: 1%;
+    flex: 1;
+    padding: 8px 7px;
+  }
+
+  .date-step {
+    width: 32px;
+    min-width: 32px;
+  }
+
+  .people-month-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+}

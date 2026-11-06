@@ -27,4 +27,6 @@ The monthly salary entered for each worker is the full-month amount for a 12-hou
 
 `earned pay = monthly salary / days in month / 12 × recorded attendance hours`
 
-The website has separate Home, Peoples, Attendance, and Salary pages. Add worker names, roles, and monthly salary from Peoples; mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; and review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
+The website has separate Home, Peoples, Attendance, and Salary pages. Add worker names, roles, and monthly salary from Peoples; its month selector shows each worker's days present and hours worked for that month. Mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; use the calendar picker, previous/next-day buttons, or Today shortcut to choose a date. Review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
+
+The interface uses a dark navy theme with lavender accents.

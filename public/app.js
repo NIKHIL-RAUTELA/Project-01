@@ -9,6 +9,11 @@ const localDate = (date) => {
 };
 const monthOf = (value) => value.slice(0, 7);
 const validMonth = (value) => /^\d{4}-(0[1-9]|1[0-2])$/.test(value || "");
+const validDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "") || value < "0001-01-01") return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+};
 const currency = (amount) => new Intl.NumberFormat("en-IN", {
   style: "currency", currency: "INR", maximumFractionDigits: 2,
 }).format(amount || 0);
@@ -24,7 +29,9 @@ const currentMonth = () => {
 
 let dashboard = null;
 let toastTimer;
+let dashboardRequestId = 0;
 let selectedMonth = currentMonth();
+let selectedWorkDate = null;
 
 $("#today-label").textContent = new Intl.DateTimeFormat("en", {
   weekday: "short", month: "short", day: "numeric",
@@ -62,13 +69,17 @@ async function request(url, options = {}) {
 async function loadDashboard(month = selectedMonth) {
   selectedMonth = validMonth(month) ? month : monthOf(localDate(today));
   localStorage.setItem("daybook-month", selectedMonth);
-  const monthInput = $("#payroll-month");
-  if (monthInput && monthInput.value !== selectedMonth) monthInput.value = selectedMonth;
+  for (const monthInput of [$("#payroll-month"), $("#people-month")]) {
+    if (monthInput && monthInput.value !== selectedMonth) monthInput.value = selectedMonth;
+  }
+  const requestId = ++dashboardRequestId;
   try {
-    dashboard = await request(`/api/dashboard?month=${encodeURIComponent(selectedMonth)}`);
+    const result = await request(`/api/dashboard?month=${encodeURIComponent(selectedMonth)}`);
+    if (requestId !== dashboardRequestId) return;
+    dashboard = result;
     render();
   } catch (error) {
-    showToast(error.message, true);
+    if (requestId === dashboardRequestId) showToast(error.message, true);
   }
 }
 
@@ -86,6 +97,9 @@ function renderPeople() {
   if (!dashboard) return;
   const workers = dashboard.workers;
   $("#people-count").textContent = `${workers.length} ${workers.length === 1 ? "person" : "people"} on your team`;
+  const monthName = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
+    .format(new Date(`${dashboard.month}-01T12:00:00`));
+  $("#people-month-label").textContent = monthName;
   $("#people-empty").hidden = workers.length > 0;
   $("#people-table").hidden = workers.length === 0;
   $("#people-rows").innerHTML = workers.map((worker) => {
@@ -94,6 +108,8 @@ function renderPeople() {
       <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(initials)}</div><div><div class="worker-name">${escapeHTML(worker.name)}</div></div></div></td>
       <td>${escapeHTML(worker.role || "Team member")}</td>
       <td class="salary-cell">${currency(worker.salary)}</td>
+      <td class="people-metric">${worker.daysPresent}<span> days</span></td>
+      <td class="people-metric">${worker.hoursWorked}<span> hrs</span></td>
       <td><button class="delete-button" data-delete="${worker.id}" aria-label="Remove ${escapeHTML(worker.name)}" title="Remove worker">×</button></td>
     </tr>`;
   }).join("");
@@ -171,6 +187,14 @@ if (monthInput) {
   });
 }
 
+const peopleMonthInput = $("#people-month");
+if (peopleMonthInput) {
+  peopleMonthInput.value = selectedMonth;
+  peopleMonthInput.addEventListener("change", () => {
+    if (validMonth(peopleMonthInput.value)) loadDashboard(peopleMonthInput.value);
+  });
+}
+
 if (page === "people") {
   const dialog = $("#worker-dialog");
   const openDialog = () => dialog.showModal();
@@ -208,17 +232,39 @@ if (page === "people") {
 if (page === "attendance") {
   const workDate = $("#work-date");
   const queryDate = new URLSearchParams(location.search).get("date");
-  const initialDate = /^\d{4}-\d{2}-\d{2}$/.test(queryDate || "") ? queryDate : localDate(today);
-  workDate.value = initialDate;
-  selectedMonth = monthOf(initialDate);
-  $("#today-button").addEventListener("click", () => {
-    workDate.value = localDate(today);
-    loadDashboard(monthOf(workDate.value));
-  });
-  workDate.addEventListener("change", () => loadDashboard(monthOf(workDate.value)));
+  const savedDate = localStorage.getItem("daybook-attendance-date");
+  selectedWorkDate = validDate(queryDate) ? queryDate
+    : validDate(savedDate) ? savedDate
+      : localDate(today);
+  workDate.value = selectedWorkDate;
+  selectedMonth = monthOf(selectedWorkDate);
+  const selectDate = (value) => {
+    if (!validDate(value)) {
+      workDate.value = selectedWorkDate;
+      showToast("Choose a valid attendance date.", true);
+      return;
+    }
+    selectedWorkDate = value;
+    workDate.value = value;
+    localStorage.setItem("daybook-attendance-date", value);
+    const url = new URL(location.href);
+    url.searchParams.set("date", value);
+    history.replaceState(null, "", url);
+    loadDashboard(monthOf(value));
+  };
+  const shiftDate = (days) => {
+    const shifted = new Date(`${selectedWorkDate}T12:00:00`);
+    shifted.setDate(shifted.getDate() + days);
+    selectDate(localDate(shifted));
+  };
+  $("#date-previous").addEventListener("click", () => shiftDate(-1));
+  $("#date-next").addEventListener("click", () => shiftDate(1));
+  $("#today-button").addEventListener("click", () => selectDate(localDate(today)));
+  workDate.addEventListener("change", () => selectDate(workDate.value));
   $("#attendance-rows").addEventListener("change", async (event) => {
     const radio = event.target.closest('input[type="radio"][data-worker]');
     if (!radio) return;
+    const attendanceDate = selectedWorkDate;
     const group = $$("#attendance-rows input[data-worker]").filter((input) => input.dataset.worker === radio.dataset.worker);
     group.forEach((input) => { input.disabled = true; });
     try {
@@ -226,17 +272,17 @@ if (page === "attendance") {
         method: "POST",
         body: JSON.stringify({
           workerId: Number(radio.dataset.worker),
-          date: workDate.value,
+          date: attendanceDate,
           hours: Number(radio.value),
         }),
       });
-      await loadDashboard(monthOf(workDate.value));
+      await loadDashboard(selectedMonth);
       showToast("Attendance saved.");
     } catch (error) {
       showToast(error.message, true);
       radio.checked = false;
-      const previous = dashboard?.workers.find((worker) => worker.id === Number(radio.dataset.worker))?.attendance[workDate.value];
-      if (previous !== undefined) {
+      const previous = dashboard?.workers.find((worker) => worker.id === Number(radio.dataset.worker))?.attendance[attendanceDate];
+      if (previous !== undefined && attendanceDate === selectedWorkDate) {
         const previousRadio = $(`#attendance-rows input[data-worker="${radio.dataset.worker}"][value="${previous}"]`);
         if (previousRadio) previousRadio.checked = true;
       }
