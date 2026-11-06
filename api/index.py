@@ -164,7 +164,10 @@ async def _dispatch(request):
         ])
         return {"deleted": True}
 
-    raise APIError(404, "API endpoint not found.")
+    raise APIError(
+        404,
+        f"API endpoint not found (path={path!r}, url={request.url.path!r}, query={request.url.query!r}).",
+    )
 
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "DELETE"])
