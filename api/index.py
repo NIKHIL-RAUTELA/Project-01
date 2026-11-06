@@ -48,7 +48,8 @@ def _dashboard(month):
     for worker in workers:
         by_day = attendance.get(str(worker["id"]), {})
         hours = sum(by_day.values())
-        earned = round((worker["salary"] / days_in_month / 12) * hours, 2)
+        hourly_rate = round(worker["salary"] / days_in_month / 12, 2)
+        earned = round(hourly_rate * hours, 2)
         total_pay += earned
         total_hours += hours
         present_count += sum(value > 0 for value in by_day.values())

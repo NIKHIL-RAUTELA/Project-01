@@ -121,7 +121,8 @@ class Handler(BaseHTTPRequestHandler):
         for worker in workers:
             by_day = attendance.get(str(worker["id"]), {})
             hours = sum(by_day.values())
-            pay = round((worker["salary"] / days_in_month / 12) * hours, 2)
+            hourly_rate = round(worker["salary"] / days_in_month / 12, 2)
+            pay = round(hourly_rate * hours, 2)
             total_pay += pay
             total_hours += hours
             present_count += sum(value > 0 for value in by_day.values())

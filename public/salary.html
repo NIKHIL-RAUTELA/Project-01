@@ -45,7 +45,7 @@
         <table id="salary-table"><thead><tr><th>WORKER</th><th>ORIGINAL SALARY</th><th>8-HOUR DAYS</th><th>12-HOUR DAYS</th><th>ABSENT DAYS</th><th>TOTAL HOURS</th><th>CALCULATED SALARY</th></tr></thead><tbody id="salary-rows"></tbody></table>
         <div class="empty-state" id="salary-empty" hidden><div class="empty-illustration"><span>₹</span><i>＋</i></div><h3>No people to calculate yet.</h3><p>Add workers and record attendance to see monthly pay.</p><a class="button button-primary button-link" href="/people.html">Go to Peoples</a></div>
       </div>
-      <div class="table-footer"><span>Pay = original monthly salary ÷ days in month ÷ 12 × total hours worked.</span><span id="salary-days-footer"></span></div>
+      <div class="table-footer"><span>Pay = round(monthly salary ÷ days in month ÷ 12, 2) × total hours worked.</span><span id="salary-days-footer"></span></div>
     </section>
     <footer class="footer"><span>Made for the people who make it happen <span class="footer-heart">♥</span></span><span>Daybook <span class="footer-separator">·</span> People & pay, in one place</span></footer>
   </main>

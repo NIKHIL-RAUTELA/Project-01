@@ -23,9 +23,11 @@ Deploy or redeploy after setting the variables. Daybook does not require an admi
 
 ## Payroll calculation
 
-The monthly salary entered for each worker is the full-month amount for a 12-hour daily schedule. For a selected calendar month:
+The monthly salary entered for each worker is the full-month amount for a 12-hour daily schedule. For a selected calendar month, first round the worker's hourly rate to two decimal places, then multiply by hours worked:
 
-`earned pay = monthly salary / days in month / 12 × recorded attendance hours`
+`hourly rate = round(monthly salary / days in month / 12, 2)`
+
+`earned pay = round(hourly rate × recorded attendance hours, 2)`
 
 The website has separate Home, Peoples, Attendance, and Salary pages. Add worker names, roles, and monthly salary from Peoples; its month selector shows each worker's days present and hours worked for that month. Mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; use the calendar picker, previous/next-day buttons, or Today shortcut to choose a date. Review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
 
