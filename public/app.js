@@ -157,7 +157,8 @@ $("#dialog-close").addEventListener("click", () => dialog.close());
 $("#dialog-cancel").addEventListener("click", () => dialog.close());
 $("#worker-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const form = new FormData(event.currentTarget);
+  const workerForm = event.currentTarget;
+  const form = new FormData(workerForm);
   const submit = $("#save-worker");
   submit.disabled = true;
   try {
@@ -169,7 +170,7 @@ $("#worker-form").addEventListener("submit", async (event) => {
         salary: Number(form.get("salary")),
       }),
     });
-    event.currentTarget.reset();
+    workerForm.reset();
     dialog.close();
     await loadDashboard();
     showToast("Worker added to your team.");
