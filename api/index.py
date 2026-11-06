@@ -75,7 +75,7 @@ def _dashboard(month):
 async def _dispatch(request):
     # Vercel rewrites /api/* to this function and places the original route in
     # the "path" query parameter. The fallback keeps direct local calls valid.
-    path = request.query_params.get("path", "")
+    path = request.query_params.get("route", "")
     if not path:
         path = request.url.path.removeprefix("/api/").strip("/")
     path = path.strip("/")
@@ -164,10 +164,7 @@ async def _dispatch(request):
         ])
         return {"deleted": True}
 
-    raise APIError(
-        404,
-        f"API endpoint not found (path={path!r}, url={request.url.path!r}, query={request.url.query!r}).",
-    )
+    raise APIError(404, "API endpoint not found.")
 
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "DELETE"])
