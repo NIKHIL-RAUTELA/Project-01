@@ -2,19 +2,19 @@
   "rewrites": [
     {
       "source": "/api/dashboard",
-      "destination": "/api/index?route=dashboard"
+      "destination": "/api/index/dashboard"
     },
     {
       "source": "/api/workers",
-      "destination": "/api/index?route=workers"
+      "destination": "/api/index/workers"
     },
     {
       "source": "/api/attendance",
-      "destination": "/api/index?route=attendance"
+      "destination": "/api/index/attendance"
     },
     {
       "source": "/api/workers/:workerId",
-      "destination": "/api/index?route=workers/:workerId"
+      "destination": "/api/index/workers/:workerId"
     }
   ]
 }

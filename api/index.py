@@ -72,12 +72,14 @@ def _dashboard(month):
     }
 
 
-async def _dispatch(request):
-    # Vercel rewrites /api/* to this function and places the original route in
-    # the "path" query parameter. The fallback keeps direct local calls valid.
-    path = request.query_params.get("route", "")
+async def _dispatch(request, route_path):
+    path = request.query_params.get("route", "") or route_path.strip("/")
     if not path:
         path = request.url.path.removeprefix("/api/").strip("/")
+    for prefix in ("api/index/", "index/"):
+        if path.startswith(prefix):
+            path = path[len(prefix):]
+            break
     path = path.strip("/")
     method = request.method
 
@@ -170,7 +172,7 @@ async def _dispatch(request):
 @app.api_route("/{path:path}", methods=["GET", "POST", "DELETE"])
 async def route(request: Request, path: str):
     try:
-        return await _dispatch(request)
+        return await _dispatch(request, path)
     except APIError as error:
         return JSONResponse(status_code=error.status, content={"error": error.message})
     except turso.TursoError:
