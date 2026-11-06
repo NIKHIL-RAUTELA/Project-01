@@ -76,7 +76,7 @@ async def _dispatch(request, route_path):
     path = request.query_params.get("route", "") or route_path.strip("/")
     if not path:
         path = request.url.path.removeprefix("/api/").strip("/")
-    for prefix in ("api/index/", "index/"):
+    for prefix in ("api/index/", "api/", "index/"):
         if path.startswith(prefix):
             path = path[len(prefix):]
             break
