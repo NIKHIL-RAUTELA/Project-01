@@ -11,9 +11,18 @@
 
 body {
   color: #e8e9f2;
+  caret-color: transparent;
+  user-select: none;
   background:
     radial-gradient(ellipse at 82% -18%, #222143 0, transparent 38rem),
     #0a0d16;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  caret-color: auto;
+  user-select: text;
 }
 
 .sidebar {
