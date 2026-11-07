@@ -34,6 +34,20 @@ let openWorkerDialog;
 let refreshBulkButtons = () => {};
 let selectedMonth = currentMonth();
 let selectedWorkDate = null;
+const workerOrderKey = "daybook-worker-order";
+const workerOrderPreference = localStorage.getItem(workerOrderKey);
+let selectedWorkerOrder = workerOrderPreference === "added" ? "added" : "alphabetical";
+
+function orderedWorkers(workers) {
+  const result = [...workers];
+  if (selectedWorkerOrder === "added") {
+    return result.sort((first, second) => first.id - second.id);
+  }
+  return result.sort((first, second) => first.name.localeCompare(second.name, undefined, {
+    sensitivity: "base",
+    numeric: true,
+  }) || first.id - second.id);
+}
 
 $("#today-label").textContent = new Intl.DateTimeFormat("en", {
   weekday: "short", month: "short", day: "numeric",
@@ -97,7 +111,7 @@ function renderHome() {
 
 function renderPeople() {
   if (!dashboard) return;
-  const workers = dashboard.workers;
+  const workers = orderedWorkers(dashboard.workers);
   $("#people-count").textContent = `${workers.length} ${workers.length === 1 ? "person" : "people"} on your team`;
   const monthName = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" })
     .format(new Date(`${dashboard.month}-01T12:00:00`));
@@ -124,7 +138,7 @@ function renderAttendance() {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   }).format(new Date(`${dateValue}T12:00:00`));
   $("#selected-date-title").textContent = `${prettyDate} attendance`;
-  const workers = dashboard.workers;
+  const workers = orderedWorkers(dashboard.workers);
   const marked = workers.filter((worker) => Object.hasOwn(worker.attendance, dateValue)).length;
   $("#day-count").textContent = `${marked} of ${workers.length} marked`;
   $("#attendance-empty").hidden = workers.length > 0;
@@ -146,7 +160,8 @@ function renderAttendance() {
 
 function renderSalary() {
   if (!dashboard) return;
-  const { summary, workers, daysInMonth, month } = dashboard;
+  const { summary, daysInMonth, month } = dashboard;
+  const workers = orderedWorkers(dashboard.workers);
   $("#total-pay").textContent = currency(summary.totalPay);
   $("#worker-count").textContent = summary.workerCount;
   $("#total-hours").innerHTML = `${summary.totalHours}<span class="value-unit"> hrs</span>`;
@@ -180,6 +195,17 @@ function render() {
   if (page === "people") renderPeople();
   if (page === "attendance") renderAttendance();
   if (page === "salary") renderSalary();
+}
+
+const workerOrderInput = $("#worker-order");
+if (workerOrderInput) {
+  workerOrderInput.value = selectedWorkerOrder;
+  workerOrderInput.addEventListener("change", () => {
+    if (!["alphabetical", "added"].includes(workerOrderInput.value)) return;
+    selectedWorkerOrder = workerOrderInput.value;
+    localStorage.setItem(workerOrderKey, selectedWorkerOrder);
+    render();
+  });
 }
 
 const monthInput = $("#payroll-month");

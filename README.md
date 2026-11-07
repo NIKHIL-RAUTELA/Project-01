@@ -31,4 +31,6 @@ The monthly salary entered for each worker is the full-month amount for a 12-hou
 
 The website has separate Home, Peoples, Attendance, and Salary pages. Add workers and edit their names, roles, and monthly salaries from Peoples; editing a worker does not change their attendance history. Its month selector shows each worker's days present and hours worked for that month. Mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; use the calendar picker, previous/next-day buttons, or Today shortcut to choose a date. The bulk 8-hour and 12-hour actions mark all workers present for that date after confirmation and replace any existing attendance for those workers on that date. Review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
 
+Peoples, Attendance, and Salary each offer an **Arrange by** selector. Alphabetical order is the default; **Added first** shows workers in the order they were created. The selected order is saved in the browser and shared across all three pages.
+
 The interface uses a dark navy theme with lavender accents.

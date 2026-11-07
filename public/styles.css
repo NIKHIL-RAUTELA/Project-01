@@ -11,6 +11,9 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
 .page-heading>.date-controls{margin-bottom:2px}
 .month-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:-8px 0 16px;color:#777789;font-size:10px}
 .month-toolbar input,.date-controls input[type="month"]{font:500 10px "DM Sans",sans-serif;color:#45455b;border:1px solid #eae8f0;background:#fff;border-radius:6px;padding:8px 10px;height:34px}
+.worker-order{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.worker-order select{font:500 10px "DM Sans",sans-serif;color:#45455b;border:1px solid #eae8f0;background:#fff;border-radius:6px;padding:8px 10px;height:34px;cursor:pointer}
+.people-month-toolbar .worker-order{margin-left:auto}
 .home-panel,.data-panel{padding:21px 21px 0;margin-bottom:20px}
 .home-panel .section-heading,.data-panel .section-heading{margin-bottom:15px}
 .quick-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;padding:2px 0 20px}
@@ -60,6 +63,9 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
   .page-heading>.date-controls{width:auto;align-self:flex-end}
   .page-heading>.date-controls input{flex:initial;min-width:0;width:138px}
   .month-toolbar{margin:0 0 12px}
+  .people-month-toolbar{flex-wrap:wrap}
+  .people-month-toolbar .worker-order{margin-left:0}
+  .page-heading>.date-controls{flex-wrap:wrap}
   .salary-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .choice-label{min-width:67px;gap:5px}
   .choice-text{font-size:8px}

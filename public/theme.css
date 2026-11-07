@@ -479,6 +479,17 @@ tbody tr:hover {
   color: #a0a7b9;
 }
 
+.worker-order {
+  color: #a0a7b9;
+}
+
+.worker-order select {
+  border-color: #343b4e;
+  background-color: #151b29;
+  color: #e1e3ee;
+  color-scheme: dark;
+}
+
 .month-toolbar strong {
   color: #e0d8f7;
   font-weight: 600;
