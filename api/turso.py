@@ -116,6 +116,7 @@ def initialize():
                 name TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT '',
                 salary REAL NOT NULL CHECK (salary >= 0),
+                standard_hours INTEGER NOT NULL DEFAULT 12 CHECK (standard_hours IN (11, 12)),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )""",
             (),
@@ -124,12 +125,43 @@ def initialize():
             """CREATE TABLE IF NOT EXISTS attendance (
                 worker_id INTEGER NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
                 work_date TEXT NOT NULL,
-                hours INTEGER NOT NULL CHECK (hours IN (0, 8, 12)),
+                hours INTEGER NOT NULL CHECK (hours IN (0, 8, 11, 12)),
                 PRIMARY KEY (worker_id, work_date)
             )""",
             (),
         ),
     ])
+    worker_columns = _execute([
+        ("SELECT name FROM pragma_table_info('workers')", ()),
+    ])[0]["rows"]
+    if not any(column["name"] == "standard_hours" for column in worker_columns):
+        _execute([
+            (
+                "ALTER TABLE workers ADD COLUMN standard_hours INTEGER NOT NULL DEFAULT 12 "
+                "CHECK (standard_hours IN (11, 12))",
+                (),
+            ),
+        ])
+    attendance_tables = _execute([
+        ("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'attendance'", ()),
+    ])[0]["rows"]
+    if attendance_tables and "11" not in attendance_tables[0]["sql"]:
+        _execute([
+            ("BEGIN", ()),
+            (
+                """CREATE TABLE attendance_new (
+                    worker_id INTEGER NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+                    work_date TEXT NOT NULL,
+                    hours INTEGER NOT NULL CHECK (hours IN (0, 8, 11, 12)),
+                    PRIMARY KEY (worker_id, work_date)
+                )""",
+                (),
+            ),
+            ("INSERT INTO attendance_new SELECT worker_id, work_date, hours FROM attendance", ()),
+            ("DROP TABLE attendance", ()),
+            ("ALTER TABLE attendance_new RENAME TO attendance", ()),
+            ("COMMIT", ()),
+        ])
 
 
 def query(sql, arguments=()):

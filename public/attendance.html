@@ -40,14 +40,14 @@
       </div>
     </section>
     <section class="panel data-panel">
-      <div class="day-callout"><div class="calendar-icon">▦</div><div><strong id="selected-date-title">Attendance</strong><span>Click a circle to mark 8 hours, 12 hours, or absent.</span></div><span class="day-count" id="day-count">0 marked</span></div>
+      <div class="day-callout"><div class="calendar-icon">▦</div><div><strong id="selected-date-title">Attendance</strong><span>Click a circle to mark 8 hours, a full shift, or absent.</span></div><span class="day-count" id="day-count">0 marked</span></div>
       <div class="bulk-attendance">
         <span>Mark everyone present:</span>
         <button class="button button-quiet" id="bulk-8-hours" type="button">8 hours</button>
-        <button class="button button-quiet" id="bulk-12-hours" type="button">12 hours</button>
+        <button class="button button-quiet" id="bulk-full-shift" type="button">Full shift</button>
       </div>
       <div class="table-wrap">
-        <table id="attendance-table"><thead><tr><th>WORKER</th><th class="choice-heading choice-8">8 HOURS</th><th class="choice-heading choice-12">12 HOURS</th><th class="choice-heading choice-absent">ABSENT</th></tr></thead><tbody id="attendance-rows"></tbody></table>
+        <table id="attendance-table"><thead><tr><th>WORKER</th><th class="choice-heading choice-8">8 HOURS</th><th class="choice-heading choice-12">FULL SHIFT</th><th class="choice-heading choice-absent">ABSENT</th></tr></thead><tbody id="attendance-rows"></tbody></table>
         <div class="empty-state" id="attendance-empty" hidden><div class="empty-illustration"><span>♙</span><i>＋</i></div><h3>Add your people first.</h3><p>Your worker list will appear here so you can mark their daily hours.</p><a class="button button-primary button-link" href="/people.html">Go to Peoples</a></div>
       </div>
       <div class="table-footer order-controls-footer"><span>Attendance for each worker and date can be updated at any time.</span><span id="attendance-save-note"></span><label class="worker-order" for="worker-order"><span class="sr-only">Worker order</span><select id="worker-order"><option value="alphabetical">Alphabetical</option><option value="added">Added first</option></select></label></div>

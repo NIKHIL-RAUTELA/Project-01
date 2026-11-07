@@ -42,10 +42,10 @@
     <section class="panel data-panel">
       <div class="section-heading"><div><div class="section-kicker">PAYROLL BREAKDOWN</div><h2>Monthly salary <span class="heading-dot">.</span></h2><p id="salary-days-note">Calculated from the selected calendar month.</p></div></div>
       <div class="table-wrap">
-        <table id="salary-table"><thead><tr><th>WORKER</th><th>ORIGINAL SALARY</th><th>8-HOUR DAYS</th><th>12-HOUR DAYS</th><th>ABSENT DAYS</th><th>TOTAL HOURS</th><th>CALCULATED SALARY</th></tr></thead><tbody id="salary-rows"></tbody></table>
+        <table id="salary-table"><thead><tr><th>WORKER</th><th>ORIGINAL SALARY</th><th>8-HOUR DAYS</th><th>FULL-SHIFT DAYS</th><th>ABSENT DAYS</th><th>TOTAL HOURS</th><th>CALCULATED SALARY</th></tr></thead><tbody id="salary-rows"></tbody></table>
         <div class="empty-state" id="salary-empty" hidden><div class="empty-illustration"><span>₹</span><i>＋</i></div><h3>No people to calculate yet.</h3><p>Add workers and record attendance to see monthly pay.</p><a class="button button-primary button-link" href="/people.html">Go to Peoples</a></div>
       </div>
-      <div class="table-footer order-controls-footer"><span>Pay = round(monthly salary ÷ days in month ÷ 12, 2) × total hours worked.</span><span id="salary-days-footer"></span><label class="worker-order" for="worker-order"><span class="sr-only">Worker order</span><select id="worker-order"><option value="alphabetical">Alphabetical</option><option value="added">Added first</option></select></label></div>
+      <div class="table-footer order-controls-footer"><span>Pay = round(monthly salary ÷ days in month ÷ each worker’s full-day hours, 2) × total hours worked.</span><span id="salary-days-footer"></span><label class="worker-order" for="worker-order"><span class="sr-only">Worker order</span><select id="worker-order"><option value="alphabetical">Alphabetical</option><option value="added">Added first</option></select></label></div>
     </section>
     <footer class="footer"><span>Made for the people who make it happen <span class="footer-heart">♥</span></span><span>Daybook <span class="footer-separator">·</span> People & pay, in one place</span></footer>
   </main>

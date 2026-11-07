@@ -23,13 +23,13 @@ Deploy or redeploy after setting the variables. Daybook does not require an admi
 
 ## Payroll calculation
 
-The monthly salary entered for each worker is the full-month amount for a 12-hour daily schedule. For a selected calendar month, first round the worker's hourly rate to two decimal places, then multiply by hours worked:
+Each worker has an 11-hour or 12-hour full-day schedule, selected in Peoples. Existing workers default to 12 hours. The monthly salary entered is the full-month amount for that worker's selected schedule. For a selected calendar month, first round the worker's hourly rate to two decimal places, then multiply by hours worked:
 
-`hourly rate = round(monthly salary / days in month / 12, 2)`
+`hourly rate = round(monthly salary / days in month / worker's full-day hours, 2)`
 
 `earned pay = round(hourly rate × recorded attendance hours, 2)`
 
-The website has separate Home, Peoples, Attendance, and Salary pages. Add workers and edit their names, roles, and monthly salaries from Peoples; editing a worker does not change their attendance history. Its month selector shows each worker's days present and hours worked for that month. Mark each selected date as an 8-hour shift, 12-hour shift, or absent from Attendance; use the calendar picker, previous/next-day buttons, or Today shortcut to choose a date. The bulk 8-hour and 12-hour actions mark all workers present for that date after confirmation and replace any existing attendance for those workers on that date. Review shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded per worker and date and can be updated by selecting another status.
+The website has separate Home, Peoples, Attendance, and Salary pages. Add workers, edit their details, and select their 11- or 12-hour full-day schedule from Peoples; existing workers default to 12 hours, and editing worker details does not change attendance records. Its month selector shows each worker's days present and hours worked for that month. Mark each date as an 8-hour shift, the worker's full shift, or absent from Attendance; use the calendar picker, previous/next-day buttons, or Today shortcut to choose a date. The bulk 8-hour and Full shift actions mark all workers present for that date after confirmation and replace any existing attendance for those workers on that date. Review 8-hour/full-shift counts, recorded absent days, total hours, and calculated pay from Salary. Calendar month lengths (including leap-year February) are used automatically. Only explicitly marked absent days count as absent; unmarked dates are not treated as absences. Attendance is recorded as actual hours per worker and date and can be updated by selecting another status.
 
 Peoples, Attendance, and Salary each offer an **Arrange by** selector. Alphabetical order is the default; **Added first** shows workers in the order they were created. The selected order is saved in the browser and shared across all three pages.
 

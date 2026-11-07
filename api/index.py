@@ -31,7 +31,7 @@ def _dashboard(month):
         raise APIError(400, "Please choose a valid month.")
 
     workers = turso.query(
-        "SELECT id, name, role, salary FROM workers ORDER BY name COLLATE NOCASE"
+        "SELECT id, name, role, salary, standard_hours FROM workers ORDER BY name COLLATE NOCASE"
     )
     records = turso.query(
         "SELECT worker_id, work_date, hours FROM attendance WHERE work_date BETWEEN ? AND ?",
@@ -48,7 +48,7 @@ def _dashboard(month):
     for worker in workers:
         by_day = attendance.get(str(worker["id"]), {})
         hours = sum(by_day.values())
-        hourly_rate = round(worker["salary"] / days_in_month / 12, 2)
+        hourly_rate = round(worker["salary"] / days_in_month / worker["standard_hours"], 2)
         earned = round(hourly_rate * hours, 2)
         total_pay += earned
         total_hours += hours
@@ -90,7 +90,7 @@ async def _dispatch(request, route_path):
 
     if method == "GET" and path == "workers":
         workers = turso.query(
-            "SELECT id, name, role, salary FROM workers ORDER BY name COLLATE NOCASE"
+            "SELECT id, name, role, salary, standard_hours FROM workers ORDER BY name COLLATE NOCASE"
         )
         return {"workers": workers}
 
@@ -104,10 +104,17 @@ async def _dispatch(request, route_path):
         name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
         role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
         salary = body.get("salary")
+        standard_hours = body.get("standardHours", 12)
         if not name or len(name) > 100:
             raise APIError(400, "Enter a worker name (up to 100 characters).")
         if len(role) > 100:
             raise APIError(400, "Role must be 100 characters or fewer.")
+        if (
+            isinstance(standard_hours, bool)
+            or not isinstance(standard_hours, int)
+            or standard_hours not in (11, 12)
+        ):
+            raise APIError(400, "Choose an 11-hour or 12-hour full-day schedule.")
         if (
             isinstance(salary, bool)
             or not isinstance(salary, (int, float))
@@ -117,12 +124,18 @@ async def _dispatch(request, route_path):
         ):
             raise APIError(400, "Enter a valid monthly salary.")
         rows = turso.query(
-            "INSERT INTO workers (name, role, salary) VALUES (?, ?, ?) RETURNING id",
-            (name, role, salary),
+            "INSERT INTO workers (name, role, salary, standard_hours) VALUES (?, ?, ?, ?) RETURNING id",
+            (name, role, salary, standard_hours),
         )
         return JSONResponse(
             status_code=201,
-            content={"id": rows[0]["id"], "name": name, "role": role, "salary": salary},
+            content={
+                "id": rows[0]["id"],
+                "name": name,
+                "role": role,
+                "salary": salary,
+                "standard_hours": standard_hours,
+            },
         )
 
     worker_match = re.fullmatch(r"workers/(\d+)", path)
@@ -136,10 +149,26 @@ async def _dispatch(request, route_path):
         name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
         role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
         salary = body.get("salary")
+        standard_hours = body.get("standardHours")
         if not name or len(name) > 100:
             raise APIError(400, "Enter a worker name (up to 100 characters).")
         if len(role) > 100:
             raise APIError(400, "Role must be 100 characters or fewer.")
+        worker_id = int(worker_match.group(1))
+        existing = turso.query(
+            "SELECT id, standard_hours FROM workers WHERE id = ?",
+            (worker_id,),
+        )
+        if not existing:
+            raise APIError(404, "Worker not found.")
+        if standard_hours is None:
+            standard_hours = existing[0]["standard_hours"]
+        if (
+            isinstance(standard_hours, bool)
+            or not isinstance(standard_hours, int)
+            or standard_hours not in (11, 12)
+        ):
+            raise APIError(400, "Choose an 11-hour or 12-hour full-day schedule.")
         if (
             isinstance(salary, bool)
             or not isinstance(salary, (int, float))
@@ -148,15 +177,17 @@ async def _dispatch(request, route_path):
             or salary > 1_000_000_000
         ):
             raise APIError(400, "Enter a valid monthly salary.")
-        worker_id = int(worker_match.group(1))
-        existing = turso.query("SELECT id FROM workers WHERE id = ?", (worker_id,))
-        if not existing:
-            raise APIError(404, "Worker not found.")
         turso.execute(
-            "UPDATE workers SET name = ?, role = ?, salary = ? WHERE id = ?",
-            (name, role, salary, worker_id),
+            "UPDATE workers SET name = ?, role = ?, salary = ?, standard_hours = ? WHERE id = ?",
+            (name, role, salary, standard_hours, worker_id),
         )
-        return {"id": worker_id, "name": name, "role": role, "salary": salary}
+        return {
+            "id": worker_id,
+            "name": name,
+            "role": role,
+            "salary": salary,
+            "standard_hours": standard_hours,
+        }
 
     if method == "POST" and path == "attendance/bulk":
         try:
@@ -182,16 +213,21 @@ async def _dispatch(request, route_path):
         except ValueError:
             raise APIError(400, "Please choose a valid date.")
         if isinstance(hours, bool) or hours not in (8, 12):
-            raise APIError(400, "Bulk attendance must be 8 hours or 12 hours.")
-        existing = turso.query("SELECT id FROM workers")
-        existing_ids = {worker["id"] for worker in existing}
+            raise APIError(400, "Bulk attendance must be 8 hours or a full shift.")
+        existing = turso.query("SELECT id, standard_hours FROM workers")
+        existing_hours = {worker["id"]: worker["standard_hours"] for worker in existing}
+        existing_ids = set(existing_hours)
         if any(worker_id not in existing_ids for worker_id in worker_ids):
             raise APIError(404, "One or more workers could not be found.")
         turso.transaction([
             (
                 """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
                    ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",
-                (worker_id, work_date, hours),
+                (
+                    worker_id,
+                    work_date,
+                    existing_hours[worker_id] if hours == 12 else hours,
+                ),
             )
             for worker_id in worker_ids
         ])
@@ -215,11 +251,25 @@ async def _dispatch(request, route_path):
             date.fromisoformat(work_date)
         except ValueError:
             raise APIError(400, "Please choose a valid date.")
-        if isinstance(hours, bool) or hours not in (0, 8, 12):
-            raise APIError(400, "Attendance must be absent (0), 8 hours, or 12 hours.")
-        exists = turso.query("SELECT 1 AS found FROM workers WHERE id = ?", (worker_id,))
-        if not exists:
+        worker = turso.query(
+            """SELECT workers.standard_hours, attendance.hours AS recorded_hours
+               FROM workers
+               LEFT JOIN attendance ON attendance.worker_id = workers.id
+                   AND attendance.work_date = ?
+               WHERE workers.id = ?""",
+            (work_date, worker_id),
+        )
+        if not worker:
             raise APIError(404, "Worker not found.")
+        standard_hours = worker[0]["standard_hours"]
+        if isinstance(hours, bool) or hours not in (0, 8, 11, 12):
+            raise APIError(400, "Attendance must be absent (0), 8 hours, or the worker's full-day hours.")
+        if (
+            hours in (11, 12)
+            and hours != standard_hours
+            and hours != worker[0]["recorded_hours"]
+        ):
+            raise APIError(400, "Choose the worker's configured full-day hours.")
         turso.execute(
             """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
                ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",

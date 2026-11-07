@@ -293,6 +293,15 @@ tbody tr:hover {
   color: #e2e4ef;
 }
 
+.worker-schedule {
+  display: inline-block;
+  margin-left: 6px;
+  color: #858da5;
+  font-size: 8px;
+  font-weight: 500;
+  vertical-align: 1px;
+}
+
 .worker-role {
   color: #9098ac;
 }
@@ -554,10 +563,20 @@ tbody tr:hover {
 }
 
 .form-field > input,
+.form-field > select,
 .salary-input {
   border-color: #353c4e;
   background: #111724;
   color: #e8e9f2;
+}
+
+.form-field > select {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #353c4e;
+  border-radius: 6px;
+  color-scheme: dark;
+  font: 500 10px "DM Sans", sans-serif;
 }
 
 .form-field input::placeholder {

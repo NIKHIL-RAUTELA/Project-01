@@ -106,7 +106,10 @@ function renderHome() {
   $("#worker-count").textContent = summary.workerCount;
   $("#total-hours").innerHTML = `${summary.totalHours}<span class="value-unit"> hrs</span>`;
   $("#attendance-count").textContent = summary.attendanceEntries;
-  $("#hours-progress").style.width = `${Math.min(100, (summary.totalHours / Math.max(1, workers.length * daysInMonth * 12)) * 100)}%`;
+  const expectedHours = workers.reduce((total, worker) => (
+    total + daysInMonth * (worker.standard_hours || 12)
+  ), 0);
+  $("#hours-progress").style.width = `${Math.min(100, (summary.totalHours / Math.max(1, expectedHours)) * 100)}%`;
 }
 
 function renderPeople() {
@@ -121,8 +124,9 @@ function renderPeople() {
   $("#people-rows").innerHTML = workers.map((worker) => {
     const initials = worker.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
     return `<tr>
-      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(initials)}</div><div><div class="worker-name">${escapeHTML(worker.name)}</div></div></div></td>
+      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(initials)}</div><div><div class="worker-name">${escapeHTML(worker.name)}${worker.standard_hours === 11 ? '<span class="worker-schedule">11h</span>' : ""}</div></div></div></td>
       <td>${escapeHTML(worker.role || "Team member")}</td>
+      <td class="people-metric">${worker.standard_hours || 12}<span> hrs</span></td>
       <td class="salary-cell">${currency(worker.salary)}</td>
       <td class="people-metric">${worker.daysPresent}<span> days</span></td>
       <td class="people-metric">${worker.hoursWorked}<span> hrs</span></td>
@@ -145,10 +149,16 @@ function renderAttendance() {
   $("#attendance-table").hidden = workers.length === 0;
   $("#attendance-rows").innerHTML = workers.map((worker) => {
     const hours = worker.attendance[dateValue];
+    const fullShiftHours = worker.standard_hours || 12;
     const initials = worker.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+    const choices = [[8, "8 hours", "choice-8"], [fullShiftHours, `${fullShiftHours} hours`, "choice-12"]];
+    if ([11, 12].includes(hours) && hours !== fullShiftHours) {
+      choices.push([hours, `${hours} hours (recorded)`, "choice-12"]);
+    }
+    choices.push([0, "Absent", "choice-absent"]);
     return `<tr>
-      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(initials)}</div><div><div class="worker-name">${escapeHTML(worker.name)}</div><div class="worker-role">${escapeHTML(worker.role || "Team member")}</div></div></div></td>
-      ${[[8, "8 hours", "choice-8"], [12, "12 hours", "choice-12"], [0, "Absent", "choice-absent"]].map(([value, label, style]) => `
+      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(initials)}</div><div><div class="worker-name">${escapeHTML(worker.name)}${fullShiftHours === 11 ? '<span class="worker-schedule">11h</span>' : ""}</div><div class="worker-role">${escapeHTML(worker.role || "Team member")}</div></div></div></td>
+      ${choices.map(([value, label, style]) => `
         <td class="attendance-choice ${style}"><label class="choice-label">
           <input type="radio" name="attendance-${worker.id}" value="${value}" data-worker="${worker.id}" ${hours === value ? "checked" : ""} aria-label="${label} for ${escapeHTML(worker.name)} on ${dateValue}">
           <span class="choice-circle" aria-hidden="true"></span><span class="choice-text">${label}</span>
@@ -176,13 +186,13 @@ function renderSalary() {
   $("#salary-rows").innerHTML = workers.map((worker) => {
     const records = Object.values(worker.attendance);
     const eightHourDays = records.filter((hours) => hours === 8).length;
-    const twelveHourDays = records.filter((hours) => hours === 12).length;
+    const fullShiftDays = records.filter((hours) => hours === (worker.standard_hours || 12)).length;
     const absentDays = records.filter((hours) => hours === 0).length;
     return `<tr>
-      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(worker.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase())}</div><div><div class="worker-name">${escapeHTML(worker.name)}</div></div></div></td>
+      <td><div class="worker-cell"><div class="worker-avatar">${escapeHTML(worker.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase())}</div><div><div class="worker-name">${escapeHTML(worker.name)}${worker.standard_hours === 11 ? '<span class="worker-schedule">11h</span>' : ""}</div></div></div></td>
       <td class="salary-cell">${currency(worker.salary)}</td>
       <td>${eightHourDays}</td>
-      <td>${twelveHourDays}</td>
+      <td>${fullShiftDays}</td>
       <td>${absentDays}</td>
       <td>${worker.hoursWorked}</td>
       <td class="earned-cell">${currency(worker.earned)}</td>
@@ -238,6 +248,7 @@ if (page === "people") {
     if (worker) {
       $("#worker-form input[name=\"name\"]").value = worker.name;
       $("#worker-form input[name=\"role\"]").value = worker.role || "";
+      $("#worker-form select[name=\"standardHours\"]").value = String(worker.standard_hours || 12);
       $("#worker-form input[name=\"salary\"]").value = worker.salary;
     }
     dialog.showModal();
@@ -259,6 +270,7 @@ if (page === "people") {
         body: JSON.stringify({
           name: form.get("name"),
           role: form.get("role"),
+          standardHours: Number(form.get("standardHours")),
           salary: Number(form.get("salary")),
         }),
       });
@@ -278,7 +290,7 @@ if (page === "people") {
 if (page === "attendance") {
   let bulkSaveInProgress = false;
   let pendingAttendanceSaves = 0;
-  const bulkButtons = [$("#bulk-8-hours"), $("#bulk-12-hours")];
+  const bulkButtons = [$("#bulk-8-hours"), $("#bulk-full-shift")];
   const updateBulkButtons = () => {
     bulkButtons.forEach((button) => {
       button.disabled = bulkSaveInProgress || pendingAttendanceSaves > 0 || !dashboard?.workers.length;
@@ -367,7 +379,7 @@ if (page === "attendance") {
     if (bulkSaveInProgress || pendingAttendanceSaves > 0 || !dashboard?.workers.length) return;
     const workers = dashboard.workers;
     const workDateValue = selectedWorkDate;
-    const hoursLabel = `${hours} hours`;
+    const hoursLabel = hours === 12 ? "their full shift" : `${hours} hours`;
     if (!window.confirm(`Mark all ${workers.length} workers as present for ${hoursLabel} on ${workDateValue}? This replaces any attendance already marked for that date.`)) return;
     bulkSaveInProgress = true;
     updateBulkButtons();
@@ -383,7 +395,9 @@ if (page === "attendance") {
           hours,
         }),
       });
-      workers.forEach((worker) => { worker.attendance[workDateValue] = hours; });
+      workers.forEach((worker) => {
+        worker.attendance[workDateValue] = hours === 12 ? (worker.standard_hours || 12) : hours;
+      });
       if (workDateValue === selectedWorkDate) renderAttendance();
       $("#attendance-save-note").textContent = "Everyone saved";
       showToast(`All ${workers.length} workers marked for ${hoursLabel}.`);
@@ -398,7 +412,7 @@ if (page === "attendance") {
     }
   };
   $("#bulk-8-hours").addEventListener("click", () => { void markEveryonePresent(8); });
-  $("#bulk-12-hours").addEventListener("click", () => { void markEveryonePresent(12); });
+  $("#bulk-full-shift").addEventListener("click", () => { void markEveryonePresent(12); });
   updateBulkButtons();
 }
 

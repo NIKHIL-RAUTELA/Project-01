@@ -35,16 +35,40 @@ def initialize():
                 name TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT '',
                 salary REAL NOT NULL CHECK (salary >= 0),
+                standard_hours INTEGER NOT NULL DEFAULT 12 CHECK (standard_hours IN (11, 12)),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS attendance (
                 worker_id INTEGER NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
                 work_date TEXT NOT NULL,
-                hours INTEGER NOT NULL CHECK (hours IN (0, 8, 12)),
+                hours INTEGER NOT NULL CHECK (hours IN (0, 8, 11, 12)),
                 PRIMARY KEY (worker_id, work_date)
             );
             """
         )
+        worker_columns = {row["name"] for row in db.execute("PRAGMA table_info(workers)")}
+        if "standard_hours" not in worker_columns:
+            db.execute(
+                "ALTER TABLE workers ADD COLUMN standard_hours INTEGER NOT NULL DEFAULT 12 "
+                "CHECK (standard_hours IN (11, 12))"
+            )
+        attendance_table = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'attendance'"
+        ).fetchone()
+        if attendance_table and "11" not in attendance_table["sql"]:
+            db.execute(
+                """CREATE TABLE attendance_new (
+                    worker_id INTEGER NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+                    work_date TEXT NOT NULL,
+                    hours INTEGER NOT NULL CHECK (hours IN (0, 8, 11, 12)),
+                    PRIMARY KEY (worker_id, work_date)
+                )"""
+            )
+            db.execute(
+                "INSERT INTO attendance_new SELECT worker_id, work_date, hours FROM attendance"
+            )
+            db.execute("DROP TABLE attendance")
+            db.execute("ALTER TABLE attendance_new RENAME TO attendance")
 
 
 class APIError(Exception):
@@ -83,7 +107,9 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, self.dashboard(month))
                 elif parsed.path == "/api/workers":
                     with connect() as db:
-                        workers = db.execute("SELECT id, name, role, salary FROM workers ORDER BY name COLLATE NOCASE").fetchall()
+                        workers = db.execute(
+                            "SELECT id, name, role, salary, standard_hours FROM workers ORDER BY name COLLATE NOCASE"
+                        ).fetchall()
                     self.send_json(200, {"workers": [dict(row) for row in workers]})
                 else:
                     raise APIError(404, "API endpoint not found.")
@@ -106,7 +132,7 @@ class Handler(BaseHTTPRequestHandler):
         end = f"{month}-{days_in_month:02d}"
         with connect() as db:
             workers = db.execute(
-                "SELECT id, name, role, salary FROM workers ORDER BY name COLLATE NOCASE"
+                "SELECT id, name, role, salary, standard_hours FROM workers ORDER BY name COLLATE NOCASE"
             ).fetchall()
             records = db.execute(
                 "SELECT worker_id, work_date, hours FROM attendance WHERE work_date BETWEEN ? AND ?",
@@ -122,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
         for worker in workers:
             by_day = attendance.get(str(worker["id"]), {})
             hours = sum(by_day.values())
-            hourly_rate = round(worker["salary"] / days_in_month / 12, 2)
+            hourly_rate = round(worker["salary"] / days_in_month / worker["standard_hours"], 2)
             pay = round(hourly_rate * hours, 2)
             total_pay += pay
             total_hours += hours
@@ -153,16 +179,35 @@ class Handler(BaseHTTPRequestHandler):
                 name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
                 role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
                 salary = body.get("salary")
+                standard_hours = body.get("standardHours", 12)
                 if not name or len(name) > 100:
                     raise APIError(400, "Enter a worker name (up to 100 characters).")
                 if len(role) > 100:
                     raise APIError(400, "Role must be 100 characters or fewer.")
+                if (
+                    isinstance(standard_hours, bool)
+                    or not isinstance(standard_hours, int)
+                    or standard_hours not in (11, 12)
+                ):
+                    raise APIError(400, "Choose an 11-hour or 12-hour full-day schedule.")
                 if isinstance(salary, bool) or not isinstance(salary, (int, float)) or salary < 0 or salary > 1_000_000_000:
                     raise APIError(400, "Enter a valid monthly salary.")
                 with connect() as db:
-                    cursor = db.execute("INSERT INTO workers (name, role, salary) VALUES (?, ?, ?)", (name, role, salary))
+                    cursor = db.execute(
+                        "INSERT INTO workers (name, role, salary, standard_hours) VALUES (?, ?, ?, ?)",
+                        (name, role, salary, standard_hours),
+                    )
                     worker_id = cursor.lastrowid
-                self.send_json(201, {"id": worker_id, "name": name, "role": role, "salary": salary})
+                self.send_json(
+                    201,
+                    {
+                        "id": worker_id,
+                        "name": name,
+                        "role": role,
+                        "salary": salary,
+                        "standard_hours": standard_hours,
+                    },
+                )
             elif self.path == "/api/attendance/bulk":
                 body = self.read_json()
                 if not isinstance(body, dict):
@@ -184,19 +229,26 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError:
                     raise APIError(400, "Please choose a valid date.")
                 if isinstance(hours, bool) or hours not in (8, 12):
-                    raise APIError(400, "Bulk attendance must be 8 hours or 12 hours.")
+                    raise APIError(400, "Bulk attendance must be 8 hours or a full shift.")
                 with connect() as db:
-                    existing_ids = {
-                        row["id"] for row in db.execute("SELECT id FROM workers").fetchall()
+                    existing = {
+                        row["id"]: row["standard_hours"]
+                        for row in db.execute("SELECT id, standard_hours FROM workers").fetchall()
                     }
-                    if any(worker_id not in existing_ids for worker_id in worker_ids):
+                    if any(worker_id not in existing for worker_id in worker_ids):
                         raise APIError(404, "One or more workers could not be found.")
                     db.executemany(
                         """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
                            ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",
-                        [(worker_id, work_date, hours) for worker_id in worker_ids],
+                        [
+                            (worker_id, work_date, existing[worker_id] if hours == 12 else hours)
+                            for worker_id in worker_ids
+                        ],
                     )
-                self.send_json(200, {"date": work_date, "hours": hours, "markedCount": len(worker_ids)})
+                self.send_json(
+                    200,
+                    {"date": work_date, "hours": hours, "markedCount": len(worker_ids)},
+                )
             elif self.path == "/api/attendance":
                 body = self.read_json()
                 worker_id = body.get("workerId")
@@ -210,12 +262,25 @@ class Handler(BaseHTTPRequestHandler):
                     date.fromisoformat(work_date)
                 except ValueError:
                     raise APIError(400, "Please choose a valid date.")
-                if isinstance(hours, bool) or hours not in (0, 8, 12):
-                    raise APIError(400, "Attendance must be absent (0), 8 hours, or 12 hours.")
+                if isinstance(hours, bool) or hours not in (0, 8, 11, 12):
+                    raise APIError(400, "Attendance must be absent (0), 8 hours, or the worker's full-day hours.")
                 with connect() as db:
-                    exists = db.execute("SELECT 1 FROM workers WHERE id = ?", (worker_id,)).fetchone()
-                    if not exists:
+                    worker = db.execute(
+                        """SELECT workers.standard_hours, attendance.hours AS recorded_hours
+                           FROM workers
+                           LEFT JOIN attendance ON attendance.worker_id = workers.id
+                               AND attendance.work_date = ?
+                           WHERE workers.id = ?""",
+                        (work_date, worker_id),
+                    ).fetchone()
+                    if not worker:
                         raise APIError(404, "Worker not found.")
+                    if (
+                        hours in (11, 12)
+                        and hours != worker["standard_hours"]
+                        and hours != worker["recorded_hours"]
+                    ):
+                        raise APIError(400, "Choose the worker's configured full-day hours.")
                     db.execute(
                         """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
                            ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",
@@ -241,10 +306,27 @@ class Handler(BaseHTTPRequestHandler):
             name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
             role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
             salary = body.get("salary")
+            standard_hours = body.get("standardHours")
             if not name or len(name) > 100:
                 raise APIError(400, "Enter a worker name (up to 100 characters).")
             if len(role) > 100:
                 raise APIError(400, "Role must be 100 characters or fewer.")
+            worker_id = int(match.group(1))
+            with connect() as db:
+                existing = db.execute(
+                    "SELECT standard_hours FROM workers WHERE id = ?",
+                    (worker_id,),
+                ).fetchone()
+            if not existing:
+                raise APIError(404, "Worker not found.")
+            if standard_hours is None:
+                standard_hours = existing["standard_hours"]
+            if (
+                isinstance(standard_hours, bool)
+                or not isinstance(standard_hours, int)
+                or standard_hours not in (11, 12)
+            ):
+                raise APIError(400, "Choose an 11-hour or 12-hour full-day schedule.")
             if (
                 isinstance(salary, bool)
                 or not isinstance(salary, (int, float))
@@ -253,15 +335,23 @@ class Handler(BaseHTTPRequestHandler):
                 or salary > 1_000_000_000
             ):
                 raise APIError(400, "Enter a valid monthly salary.")
-            worker_id = int(match.group(1))
             with connect() as db:
                 cursor = db.execute(
-                    "UPDATE workers SET name = ?, role = ?, salary = ? WHERE id = ?",
-                    (name, role, salary, worker_id),
+                    "UPDATE workers SET name = ?, role = ?, salary = ?, standard_hours = ? WHERE id = ?",
+                    (name, role, salary, standard_hours, worker_id),
                 )
                 if cursor.rowcount == 0:
                     raise APIError(404, "Worker not found.")
-            self.send_json(200, {"id": worker_id, "name": name, "role": role, "salary": salary})
+            self.send_json(
+                200,
+                {
+                    "id": worker_id,
+                    "name": name,
+                    "role": role,
+                    "salary": salary,
+                    "standard_hours": standard_hours,
+                },
+            )
         except APIError as error:
             self.send_json(error.status, {"error": error.message})
         except sqlite3.Error:
