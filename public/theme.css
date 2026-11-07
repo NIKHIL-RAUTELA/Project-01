@@ -304,6 +304,48 @@ tbody tr:hover {
   font-weight: 400;
 }
 
+.people-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.edit-button {
+  min-height: 29px;
+  padding: 0 10px;
+  border: 1px solid #3c3657;
+  border-radius: 7px;
+  background: #26233a;
+  color: #d3c4ff;
+  font: 600 9px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.edit-button:hover {
+  border-color: #72609e;
+  background: #302a48;
+}
+
+.bulk-attendance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 14px;
+  color: #a0a7b9;
+  font-size: 10px;
+}
+
+.bulk-attendance .button {
+  min-height: 31px;
+  padding: 0 11px;
+}
+
+.bulk-attendance .button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .choice-heading,
 .choice-8 {
   color: #c0a9ff !important;
@@ -560,5 +602,9 @@ tbody tr:hover {
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 7px;
+  }
+
+  .bulk-attendance {
+    flex-wrap: wrap;
   }
 }

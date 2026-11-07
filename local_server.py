@@ -1,6 +1,7 @@
 """SQLite-backed HTTP server for local development."""
 
 import json
+import math
 import os
 import re
 import sqlite3
@@ -162,6 +163,40 @@ class Handler(BaseHTTPRequestHandler):
                     cursor = db.execute("INSERT INTO workers (name, role, salary) VALUES (?, ?, ?)", (name, role, salary))
                     worker_id = cursor.lastrowid
                 self.send_json(201, {"id": worker_id, "name": name, "role": role, "salary": salary})
+            elif self.path == "/api/attendance/bulk":
+                body = self.read_json()
+                if not isinstance(body, dict):
+                    raise APIError(400, "Please send a valid JSON request.")
+                worker_ids = body.get("workerIds")
+                work_date = body.get("date")
+                hours = body.get("hours")
+                if (
+                    not isinstance(worker_ids, list)
+                    or not worker_ids
+                    or any(isinstance(worker_id, bool) or not isinstance(worker_id, int) or worker_id < 1 for worker_id in worker_ids)
+                    or len(set(worker_ids)) != len(worker_ids)
+                ):
+                    raise APIError(400, "Choose at least one valid worker.")
+                if not isinstance(work_date, str) or not DATE_PATTERN.fullmatch(work_date):
+                    raise APIError(400, "Date must use YYYY-MM-DD format.")
+                try:
+                    date.fromisoformat(work_date)
+                except ValueError:
+                    raise APIError(400, "Please choose a valid date.")
+                if isinstance(hours, bool) or hours not in (8, 12):
+                    raise APIError(400, "Bulk attendance must be 8 hours or 12 hours.")
+                with connect() as db:
+                    existing_ids = {
+                        row["id"] for row in db.execute("SELECT id FROM workers").fetchall()
+                    }
+                    if any(worker_id not in existing_ids for worker_id in worker_ids):
+                        raise APIError(404, "One or more workers could not be found.")
+                    db.executemany(
+                        """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
+                           ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",
+                        [(worker_id, work_date, hours) for worker_id in worker_ids],
+                    )
+                self.send_json(200, {"date": work_date, "hours": hours, "markedCount": len(worker_ids)})
             elif self.path == "/api/attendance":
                 body = self.read_json()
                 worker_id = body.get("workerId")
@@ -189,6 +224,44 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"workerId": worker_id, "date": work_date, "hours": hours})
             else:
                 raise APIError(404, "API endpoint not found.")
+        except APIError as error:
+            self.send_json(error.status, {"error": error.message})
+        except sqlite3.Error:
+            self.send_json(500, {"error": "The database request could not be completed."})
+
+    def do_PUT(self):
+        match = re.fullmatch(r"/api/workers/(\d+)", urlparse(self.path).path)
+        if not match:
+            self.send_json(404, {"error": "API endpoint not found."})
+            return
+        try:
+            body = self.read_json()
+            if not isinstance(body, dict):
+                raise APIError(400, "Please send a valid JSON request.")
+            name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
+            role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
+            salary = body.get("salary")
+            if not name or len(name) > 100:
+                raise APIError(400, "Enter a worker name (up to 100 characters).")
+            if len(role) > 100:
+                raise APIError(400, "Role must be 100 characters or fewer.")
+            if (
+                isinstance(salary, bool)
+                or not isinstance(salary, (int, float))
+                or not math.isfinite(salary)
+                or salary < 0
+                or salary > 1_000_000_000
+            ):
+                raise APIError(400, "Enter a valid monthly salary.")
+            worker_id = int(match.group(1))
+            with connect() as db:
+                cursor = db.execute(
+                    "UPDATE workers SET name = ?, role = ?, salary = ? WHERE id = ?",
+                    (name, role, salary, worker_id),
+                )
+                if cursor.rowcount == 0:
+                    raise APIError(404, "Worker not found.")
+            self.send_json(200, {"id": worker_id, "name": name, "role": role, "salary": salary})
         except APIError as error:
             self.send_json(error.status, {"error": error.message})
         except sqlite3.Error:

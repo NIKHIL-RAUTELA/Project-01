@@ -30,6 +30,8 @@ const currentMonth = () => {
 let dashboard = null;
 let toastTimer;
 let dashboardRequestId = 0;
+let openWorkerDialog;
+let refreshBulkButtons = () => {};
 let selectedMonth = currentMonth();
 let selectedWorkDate = null;
 
@@ -110,7 +112,7 @@ function renderPeople() {
       <td class="salary-cell">${currency(worker.salary)}</td>
       <td class="people-metric">${worker.daysPresent}<span> days</span></td>
       <td class="people-metric">${worker.hoursWorked}<span> hrs</span></td>
-      <td><button class="delete-button" data-delete="${worker.id}" aria-label="Remove ${escapeHTML(worker.name)}" title="Remove worker">×</button></td>
+      <td class="people-actions"><button class="edit-button" data-edit="${worker.id}" aria-label="Edit ${escapeHTML(worker.name)}" title="Edit worker">Edit</button><button class="delete-button" data-delete="${worker.id}" aria-label="Remove ${escapeHTML(worker.name)}" title="Remove worker">×</button></td>
     </tr>`;
   }).join("");
 }
@@ -139,6 +141,7 @@ function renderAttendance() {
         </label></td>`).join("")}
     </tr>`;
   }).join("");
+  if (page === "attendance") refreshBulkButtons();
 }
 
 function renderSalary() {
@@ -197,9 +200,24 @@ if (peopleMonthInput) {
 
 if (page === "people") {
   const dialog = $("#worker-dialog");
-  const openDialog = () => dialog.showModal();
-  $("#add-worker-open").addEventListener("click", openDialog);
-  $("#empty-add-worker").addEventListener("click", openDialog);
+  let editingWorkerId = null;
+  openWorkerDialog = (worker = null) => {
+    editingWorkerId = worker?.id ?? null;
+    $("#worker-form").reset();
+    $("#dialog-title").textContent = editingWorkerId ? "Edit worker." : "Add a worker.";
+    $("#dialog-description").textContent = editingWorkerId
+      ? "Update their name, role, or monthly salary."
+      : "Add their details to start tracking attendance.";
+    $("#save-worker").textContent = editingWorkerId ? "Save changes" : "Add worker";
+    if (worker) {
+      $("#worker-form input[name=\"name\"]").value = worker.name;
+      $("#worker-form input[name=\"role\"]").value = worker.role || "";
+      $("#worker-form input[name=\"salary\"]").value = worker.salary;
+    }
+    dialog.showModal();
+  };
+  $("#add-worker-open").addEventListener("click", () => openWorkerDialog());
+  $("#empty-add-worker").addEventListener("click", () => openWorkerDialog());
   $("#dialog-close").addEventListener("click", () => dialog.close());
   $("#dialog-cancel").addEventListener("click", () => dialog.close());
   $("#worker-form").addEventListener("submit", async (event) => {
@@ -209,8 +227,9 @@ if (page === "people") {
     const submit = $("#save-worker");
     submit.disabled = true;
     try {
-      await request("/api/workers", {
-        method: "POST",
+      const workerId = editingWorkerId;
+      await request(workerId ? `/api/workers/${workerId}` : "/api/workers", {
+        method: workerId ? "PUT" : "POST",
         body: JSON.stringify({
           name: form.get("name"),
           role: form.get("role"),
@@ -220,7 +239,8 @@ if (page === "people") {
       workerForm.reset();
       dialog.close();
       await loadDashboard();
-      showToast("Worker added to your team.");
+      editingWorkerId = null;
+      showToast(workerId ? "Worker details updated." : "Worker added to your team.");
     } catch (error) {
       showToast(error.message, true);
     } finally {
@@ -230,6 +250,15 @@ if (page === "people") {
 }
 
 if (page === "attendance") {
+  let bulkSaveInProgress = false;
+  let pendingAttendanceSaves = 0;
+  const bulkButtons = [$("#bulk-8-hours"), $("#bulk-12-hours")];
+  const updateBulkButtons = () => {
+    bulkButtons.forEach((button) => {
+      button.disabled = bulkSaveInProgress || pendingAttendanceSaves > 0 || !dashboard?.workers.length;
+    });
+  };
+  refreshBulkButtons = updateBulkButtons;
   const workDate = $("#work-date");
   const queryDate = new URLSearchParams(location.search).get("date");
   const savedDate = localStorage.getItem("daybook-attendance-date");
@@ -262,11 +291,13 @@ if (page === "attendance") {
   $("#today-button").addEventListener("click", () => selectDate(localDate(today)));
   workDate.addEventListener("change", () => selectDate(workDate.value));
   const saveAttendance = async (radio) => {
-    if (!radio || radio.disabled) return;
+    if (!radio || radio.disabled || bulkSaveInProgress) return;
     const attendanceDate = selectedWorkDate;
     const workerId = Number(radio.dataset.worker);
     const hours = Number(radio.value);
     radio.checked = true;
+    pendingAttendanceSaves += 1;
+    updateBulkButtons();
     const group = $$("#attendance-rows input[data-worker]").filter((input) => input.dataset.worker === radio.dataset.worker);
     group.forEach((input) => { input.disabled = true; });
     $("#attendance-save-note").textContent = "Saving…";
@@ -292,6 +323,9 @@ if (page === "attendance") {
       $("#attendance-save-note").textContent = "Save failed. Please try again.";
       if (attendanceDate === selectedWorkDate) renderAttendance();
       group.forEach((input) => { input.disabled = false; });
+    } finally {
+      pendingAttendanceSaves -= 1;
+      updateBulkButtons();
     }
   };
   $("#attendance-rows").addEventListener("click", (event) => {
@@ -303,10 +337,53 @@ if (page === "attendance") {
     const radio = event.target.closest('input[type="radio"][data-worker]');
     if (radio) void saveAttendance(radio);
   });
+  const markEveryonePresent = async (hours) => {
+    if (bulkSaveInProgress || pendingAttendanceSaves > 0 || !dashboard?.workers.length) return;
+    const workers = dashboard.workers;
+    const workDateValue = selectedWorkDate;
+    const hoursLabel = `${hours} hours`;
+    if (!window.confirm(`Mark all ${workers.length} workers as present for ${hoursLabel} on ${workDateValue}? This replaces any attendance already marked for that date.`)) return;
+    bulkSaveInProgress = true;
+    updateBulkButtons();
+    const attendanceRadios = $$("#attendance-rows input[data-worker]");
+    attendanceRadios.forEach((radio) => { radio.disabled = true; });
+    $("#attendance-save-note").textContent = "Saving everyone…";
+    try {
+      await request("/api/attendance/bulk", {
+        method: "POST",
+        body: JSON.stringify({
+          workerIds: workers.map((worker) => worker.id),
+          date: workDateValue,
+          hours,
+        }),
+      });
+      workers.forEach((worker) => { worker.attendance[workDateValue] = hours; });
+      if (workDateValue === selectedWorkDate) renderAttendance();
+      $("#attendance-save-note").textContent = "Everyone saved";
+      showToast(`All ${workers.length} workers marked for ${hoursLabel}.`);
+      void loadDashboard(selectedMonth);
+    } catch (error) {
+      $("#attendance-save-note").textContent = "Could not mark everyone. Please try again.";
+      showToast(error.message, true);
+    } finally {
+      bulkSaveInProgress = false;
+      attendanceRadios.forEach((radio) => { radio.disabled = false; });
+      updateBulkButtons();
+    }
+  };
+  $("#bulk-8-hours").addEventListener("click", () => { void markEveryonePresent(8); });
+  $("#bulk-12-hours").addEventListener("click", () => { void markEveryonePresent(12); });
+  updateBulkButtons();
 }
 
 if (page === "people") {
   $("#people-rows").addEventListener("click", async (event) => {
+    const editButton = event.target.closest("[data-edit]");
+    if (editButton) {
+      const worker = dashboard?.workers.find((item) => item.id === Number(editButton.dataset.edit));
+      if (worker) openWorkerDialog(worker);
+      return;
+    }
     const button = event.target.closest("[data-delete]");
     if (!button) return;
     const worker = dashboard?.workers.find((item) => item.id === Number(button.dataset.delete));

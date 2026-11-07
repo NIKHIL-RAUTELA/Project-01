@@ -125,6 +125,78 @@ async def _dispatch(request, route_path):
             content={"id": rows[0]["id"], "name": name, "role": role, "salary": salary},
         )
 
+    worker_match = re.fullmatch(r"workers/(\d+)", path)
+    if method == "PUT" and worker_match:
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            raise APIError(400, "Please send a valid JSON request.")
+        if not isinstance(body, dict):
+            raise APIError(400, "Please send a valid JSON request.")
+        name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
+        role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""
+        salary = body.get("salary")
+        if not name or len(name) > 100:
+            raise APIError(400, "Enter a worker name (up to 100 characters).")
+        if len(role) > 100:
+            raise APIError(400, "Role must be 100 characters or fewer.")
+        if (
+            isinstance(salary, bool)
+            or not isinstance(salary, (int, float))
+            or not math.isfinite(salary)
+            or salary < 0
+            or salary > 1_000_000_000
+        ):
+            raise APIError(400, "Enter a valid monthly salary.")
+        worker_id = int(worker_match.group(1))
+        existing = turso.query("SELECT id FROM workers WHERE id = ?", (worker_id,))
+        if not existing:
+            raise APIError(404, "Worker not found.")
+        turso.execute(
+            "UPDATE workers SET name = ?, role = ?, salary = ? WHERE id = ?",
+            (name, role, salary, worker_id),
+        )
+        return {"id": worker_id, "name": name, "role": role, "salary": salary}
+
+    if method == "POST" and path == "attendance/bulk":
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            raise APIError(400, "Please send a valid JSON request.")
+        if not isinstance(body, dict):
+            raise APIError(400, "Please send a valid JSON request.")
+        worker_ids = body.get("workerIds")
+        work_date = body.get("date")
+        hours = body.get("hours")
+        if (
+            not isinstance(worker_ids, list)
+            or not worker_ids
+            or any(isinstance(worker_id, bool) or not isinstance(worker_id, int) or worker_id < 1 for worker_id in worker_ids)
+            or len(set(worker_ids)) != len(worker_ids)
+        ):
+            raise APIError(400, "Choose at least one valid worker.")
+        if not isinstance(work_date, str) or not DATE_PATTERN.fullmatch(work_date):
+            raise APIError(400, "Date must use YYYY-MM-DD format.")
+        try:
+            date.fromisoformat(work_date)
+        except ValueError:
+            raise APIError(400, "Please choose a valid date.")
+        if isinstance(hours, bool) or hours not in (8, 12):
+            raise APIError(400, "Bulk attendance must be 8 hours or 12 hours.")
+        existing = turso.query("SELECT id FROM workers")
+        existing_ids = {worker["id"] for worker in existing}
+        if any(worker_id not in existing_ids for worker_id in worker_ids):
+            raise APIError(404, "One or more workers could not be found.")
+        turso.transaction([
+            (
+                """INSERT INTO attendance (worker_id, work_date, hours) VALUES (?, ?, ?)
+                   ON CONFLICT(worker_id, work_date) DO UPDATE SET hours = excluded.hours""",
+                (worker_id, work_date, hours),
+            )
+            for worker_id in worker_ids
+        ])
+        return {"date": work_date, "hours": hours, "markedCount": len(worker_ids)}
+
     if method == "POST" and path == "attendance":
         try:
             body = await request.json()
@@ -155,9 +227,8 @@ async def _dispatch(request, route_path):
         )
         return {"workerId": worker_id, "date": work_date, "hours": hours}
 
-    match = re.fullmatch(r"workers/(\d+)", path)
-    if method == "DELETE" and match:
-        worker_id = int(match.group(1))
+    if method == "DELETE" and worker_match:
+        worker_id = int(worker_match.group(1))
         rows = turso.query("SELECT id FROM workers WHERE id = ?", (worker_id,))
         if not rows:
             raise APIError(404, "Worker not found.")
@@ -170,7 +241,7 @@ async def _dispatch(request, route_path):
     raise APIError(404, "API endpoint not found.")
 
 
-@app.api_route("/{path:path}", methods=["GET", "POST", "DELETE"])
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def route(request: Request, path: str):
     try:
         return await _dispatch(request, path)
