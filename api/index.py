@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 import re
 from calendar import monthrange
 from datetime import date
@@ -7,12 +8,20 @@ from datetime import date
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from api import turso
+from api import auth, turso
 
 
 MONTH_PATTERN = re.compile(r"^\d{4}-\d{2}$")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 app = FastAPI()
+
+
+@app.middleware("http")
+async def disable_api_caching(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 class APIError(Exception):
@@ -83,6 +92,50 @@ async def _dispatch(request, route_path):
             break
     path = path.strip("/")
     method = request.method
+
+    if path == "auth" and method == "GET":
+        return {
+            "authenticated": auth.valid_token(request.cookies.get(auth.COOKIE_NAME)),
+            "configured": auth.configured(),
+        }
+
+    if path == "auth/login" and method == "POST":
+        if not auth.configured():
+            raise APIError(503, "Admin sign-in is not configured. Set ADMIN_PASSWORD and SESSION_SECRET.")
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            raise APIError(400, "Please send a valid JSON request.")
+        password = body.get("password") if isinstance(body, dict) else None
+        if not isinstance(password, str) or not auth.password_matches(password):
+            raise APIError(401, "Incorrect password.")
+        response = JSONResponse({"authenticated": True})
+        response.set_cookie(
+            auth.COOKIE_NAME,
+            auth.issue_token(),
+            max_age=auth.SESSION_MAX_AGE,
+            httponly=True,
+            secure=request.url.scheme == "https" or os.environ.get("VERCEL") == "1",
+            samesite="lax",
+            path="/",
+        )
+        return response
+
+    if path == "auth/logout" and method == "POST":
+        response = JSONResponse({"authenticated": False})
+        response.delete_cookie(
+            auth.COOKIE_NAME,
+            httponly=True,
+            secure=request.url.scheme == "https" or os.environ.get("VERCEL") == "1",
+            samesite="lax",
+            path="/",
+        )
+        return response
+
+    if not auth.configured():
+        raise APIError(503, "Admin sign-in is not configured. Set ADMIN_PASSWORD and SESSION_SECRET.")
+    if not auth.valid_token(request.cookies.get(auth.COOKIE_NAME)):
+        raise APIError(401, "Admin sign-in required.")
 
     if method == "GET" and path == "dashboard":
         month = request.query_params.get("month", date.today().strftime("%Y-%m"))

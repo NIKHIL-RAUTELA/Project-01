@@ -5,16 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0e18">
   <title>Daybook — Attendance</title>
+  <meta name="description" content="Record daily worker attendance and review hours in Daybook.">
+  <link rel="icon" type="image/svg+xml" href="/daybook-logo.svg" sizes="any">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Daybook — Worker accounts, attendance, and payroll">
+  <meta property="og:description" content="Manage workers, daily attendance, monthly payroll, and shoe production in one place.">
+  <meta property="og:image" content="https://daybook-attendance.vercel.app/daybook-social.svg">
+  <meta property="og:image:alt" content="Daybook logo with a calendar and shoe illustration">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/theme.css">
+  <script src="/auth.js" defer></script>
   <script src="/app.js" defer></script>
 </head>
 <body data-page="attendance">
   <aside class="sidebar">
-    <a class="brand" href="/" aria-label="Daybook home"><span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5.5" y="7.5" width="21" height="19" rx="4.5"></rect><path d="M11 5v5M21 5v5M6 13h20"></path><path d="m11 20 3.2 3.2L21.5 16"></path></svg></span><span>daybook<span class="brand-period">.</span></span></a>
+    <a class="brand" href="/" aria-label="Daybook home"><span class="brand-mark"><img src="/daybook-logo.svg" alt="" aria-hidden="true"></span><span>daybook<span class="brand-period">.</span></span></a>
     <div class="workspace-label">WORKSPACE</div>
     <nav aria-label="Main navigation">
       <a class="nav-link" href="/"><span class="nav-icon">▦</span>Home</a>
@@ -25,7 +34,7 @@
     </nav>
     <div class="sidebar-bottom">
       <div class="tip-card"><div class="tip-spark">✳</div><strong>A little more in sync.</strong><p>Keep attendance and payroll together, all month long.</p></div>
-      <div class="profile"><div class="avatar avatar-lilac">JD</div><div><strong>Workspace admin</strong><small>Owner account</small></div><span class="profile-dots">···</span></div>
+      <div class="profile"><div class="avatar avatar-lilac">DB</div><div><strong>Workspace admin</strong><small>Owner account</small></div><button class="logout-button" id="logout-button" type="button">Sign out</button></div>
     </div>
   </aside>
   <main class="main-content">

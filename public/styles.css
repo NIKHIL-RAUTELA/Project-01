@@ -29,6 +29,23 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
 .production-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
 .production-entry-panel .section-heading{margin-bottom:18px}
 .production-entry-panel .form-field>input:focus,.production-entry-panel .salary-input:focus-within{outline:2px solid #d5c9f5;outline-offset:1px}
+.brand-mark img{width:100%;height:100%;display:block}
+.logout-button{margin-left:auto;border:0;background:transparent;color:#aaaabe;padding:5px 0 5px 5px;font:500 9px "DM Sans",sans-serif;cursor:pointer}
+.logout-button:hover{color:#fff}
+.login-page{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-card{width:min(100%,410px);padding:36px;border:1px solid #292f41;border-radius:16px;background:#111725;box-shadow:0 24px 80px #0005}
+.login-brand{padding:0;margin-bottom:44px}
+.login-card .eyebrow{margin-bottom:10px}
+.login-card h1{margin-top:0}
+.login-card .subtitle{line-height:1.6}
+.login-form{display:grid;gap:18px;margin-top:27px}
+.login-form .form-field{display:grid;gap:8px;font-size:11px;color:#c9cddd}
+.login-form input{height:42px;width:100%;border:1px solid #343b4e;border-radius:7px;background:#0d1320;color:#f0eff7;padding:0 12px;font:500 13px "DM Sans",sans-serif;user-select:text;caret-color:auto}
+.login-form input:focus{outline:2px solid #ad96f4;outline-offset:2px}
+.login-form .button{width:100%;height:42px;font-size:12px}
+.auth-status{min-height:16px;margin:14px 0 0;color:#f0a8a8;font-size:11px}
+.login-footnote{margin:19px 0 0;padding-top:16px;border-top:1px solid #292f41;color:#858da5;font-size:10px}
+.login-form .button:disabled,.logout-button:disabled{opacity:.6;cursor:wait}
 .home-panel .section-heading,.data-panel .section-heading{margin-bottom:15px}
 .quick-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;padding:2px 0 20px}
 .quick-link{display:flex;align-items:center;gap:10px;min-height:74px;padding:12px;border:1px solid #efedf4;border-radius:8px;color:#36364c;text-decoration:none;transition:background .15s,border-color .15s}
@@ -80,6 +97,7 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
   .production-preview{grid-column:span 2}
   .production-form>.button{grid-column:span 2;justify-self:stretch}
   .production-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .login-card{padding:27px 22px}
   .page-heading>.date-controls{width:auto;align-self:flex-end}
   .page-heading>.date-controls input{flex:initial;min-width:0;width:138px}
   .month-toolbar{margin:0 0 12px}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0e18">
+  <title>Daybook — Admin sign in</title>
+  <meta name="description" content="Sign in to your private Daybook workspace.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/daybook-logo.svg" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/auth.js" defer></script>
+</head>
+<body class="login-page" data-page="login">
+  <main class="login-card">
+    <a class="brand login-brand" href="/" aria-label="Daybook">
+      <span class="brand-mark"><img src="/daybook-logo.svg" alt="" aria-hidden="true"></span>
+      <span>daybook<span class="brand-period">.</span></span>
+    </a>
+    <div class="eyebrow"><span class="live-dot"></span> PRIVATE WORKSPACE</div>
+    <h1>Welcome <span>back.</span></h1>
+    <p class="subtitle">Sign in to manage your people, attendance, and payroll.</p>
+    <form class="login-form" id="login-form">
+      <label class="form-field" for="admin-password">Admin password
+        <input id="admin-password" name="password" type="password" autocomplete="current-password" required autofocus>
+      </label>
+      <button class="button button-primary" type="submit">Sign in</button>
+    </form>
+    <p class="auth-status" id="auth-status" role="status" aria-live="polite"></p>
+    <p class="login-footnote">Authorized admin access only.</p>
+  </main>
+</body>
+</html>

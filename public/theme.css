@@ -57,6 +57,42 @@ textarea,
   stroke-linejoin: round;
 }
 
+.brand-mark img {
+  border-radius: inherit;
+}
+
+.logout-button {
+  color: #a7aec0;
+}
+
+.logout-button:hover {
+  color: #fff;
+}
+
+.login-page {
+  background:
+    radial-gradient(ellipse at 50% 0, #292448 0, transparent 38rem),
+    #0a0d16;
+}
+
+.login-card {
+  border-color: #30364a;
+  background: linear-gradient(150deg, #171d2c, #101522);
+}
+
+.login-card h1 {
+  color: #f0eff7;
+}
+
+.login-card .subtitle,
+.login-footnote {
+  color: #9aa1b4;
+}
+
+.login-footnote {
+  border-color: #292f41;
+}
+
 .brand-period,
 .nav-icon {
   color: #c6afff;

@@ -82,6 +82,10 @@ async function request(url, options = {}) {
   } catch {
     throw new Error("The server returned an invalid response. Please try again.");
   }
+  if (response.status === 401) {
+    const next = encodeURIComponent(`${location.pathname}${location.search}`);
+    window.location.replace(`/login.html?next=${next}`);
+  }
   if (!response.ok) {
     const error = new Error(result.error || "Something went wrong.");
     error.status = response.status;
@@ -572,11 +576,25 @@ if (page === "production") {
     populateProductionDate(productionDateInput.value);
     productionDateInput.focus();
   });
-  void loadProduction(productionMonth);
+  if (window.daybookAuthReady) {
+    void window.daybookAuthReady.then((authenticated) => {
+      if (authenticated) loadProduction(productionMonth);
+    });
+  } else {
+    void loadProduction(productionMonth);
+  }
 }
 
 function $$(selector) {
   return [...document.querySelectorAll(selector)];
 }
 
-if (page !== "production") loadDashboard(selectedMonth);
+if (page !== "production") {
+  if (window.daybookAuthReady) {
+    void window.daybookAuthReady.then((authenticated) => {
+      if (authenticated) loadDashboard(selectedMonth);
+    });
+  } else {
+    loadDashboard(selectedMonth);
+  }
+}

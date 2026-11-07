@@ -11,6 +11,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from api import auth
+
 
 ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
@@ -95,6 +97,30 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_auth_cookie(self, token, max_age):
+        secure = self.headers.get("X-Forwarded-Proto") == "https"
+        value = f"{auth.COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}"
+        if secure:
+            value += "; Secure"
+        self.send_header("Set-Cookie", value)
+
+    def api_access_error(self):
+        if not auth.configured():
+            self.send_json(
+                503,
+                {"error": "Admin sign-in is not configured. Set ADMIN_PASSWORD and SESSION_SECRET."},
+            )
+            return True
+        cookies = {}
+        for item in self.headers.get("Cookie", "").split(";"):
+            name, separator, value = item.strip().partition("=")
+            if separator:
+                cookies[name] = value
+        if not auth.valid_token(cookies.get(auth.COOKIE_NAME)):
+            self.send_json(401, {"error": "Admin sign-in required."})
+            return True
+        return False
+
     def read_json(self):
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -108,7 +134,17 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/"):
             try:
-                if parsed.path == "/api/dashboard":
+                if parsed.path == "/api/auth":
+                    self.send_json(
+                        200,
+                        {
+                            "authenticated": self.has_valid_session(),
+                            "configured": auth.configured(),
+                        },
+                    )
+                elif self.api_access_error():
+                    return
+                elif parsed.path == "/api/dashboard":
                     month = parse_qs(parsed.query).get("month", [date.today().strftime("%Y-%m")])[0]
                     self.send_json(200, self.dashboard(month))
                 elif parsed.path == "/api/production":
@@ -217,9 +253,46 @@ class Handler(BaseHTTPRequestHandler):
             },
         }
 
+    def has_valid_session(self):
+        cookies = {}
+        for item in self.headers.get("Cookie", "").split(";"):
+            name, separator, value = item.strip().partition("=")
+            if separator:
+                cookies[name] = value
+        return auth.valid_token(cookies.get(auth.COOKIE_NAME))
+
     def do_POST(self):
         try:
-            if self.path == "/api/production":
+            path = urlparse(self.path).path
+            if path == "/api/auth/login":
+                if not auth.configured():
+                    raise APIError(503, "Admin sign-in is not configured. Set ADMIN_PASSWORD and SESSION_SECRET.")
+                body = self.read_json()
+                password = body.get("password") if isinstance(body, dict) else None
+                if not isinstance(password, str) or not auth.password_matches(password):
+                    raise APIError(401, "Incorrect password.")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_auth_cookie(auth.issue_token(), auth.SESSION_MAX_AGE)
+                body_bytes = json.dumps({"authenticated": True}).encode("utf-8")
+                self.send_header("Content-Length", str(len(body_bytes)))
+                self.end_headers()
+                self.wfile.write(body_bytes)
+                return
+            if path == "/api/auth/logout":
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_auth_cookie("", 0)
+                body_bytes = json.dumps({"authenticated": False}).encode("utf-8")
+                self.send_header("Content-Length", str(len(body_bytes)))
+                self.end_headers()
+                self.wfile.write(body_bytes)
+                return
+            if self.api_access_error():
+                return
+            if path == "/api/production":
                 body = self.read_json()
                 if not isinstance(body, dict):
                     raise APIError(400, "Please send a valid JSON request.")
@@ -388,6 +461,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "The database request could not be completed."})
 
     def do_PUT(self):
+        if self.api_access_error():
+            return
         match = re.fullmatch(r"/api/workers/(\d+)", urlparse(self.path).path)
         if not match:
             self.send_json(404, {"error": "API endpoint not found."})
@@ -451,6 +526,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "The database request could not be completed."})
 
     def do_DELETE(self):
+        if self.api_access_error():
+            return
         match = re.fullmatch(r"/api/workers/(\d+)", urlparse(self.path).path)
         if not match:
             self.send_json(404, {"error": "API endpoint not found."})
@@ -476,6 +553,8 @@ class Handler(BaseHTTPRequestHandler):
             content_type = "text/css; charset=utf-8"
         elif target.suffix == ".js":
             content_type = "text/javascript; charset=utf-8"
+        elif target.suffix == ".svg":
+            content_type = "image/svg+xml"
         body = target.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", content_type)
