@@ -37,7 +37,6 @@
         <input id="work-date" type="date">
         <button class="button button-quiet date-step" id="date-next" type="button" aria-label="Next day" title="Next day">›</button>
         <button class="button button-quiet" id="today-button" type="button">Today</button>
-        <label class="worker-order" for="worker-order">Arrange by <select id="worker-order"><option value="alphabetical">Alphabetical</option><option value="added">Added first</option></select></label>
       </div>
     </section>
     <section class="panel data-panel">
@@ -51,7 +50,7 @@
         <table id="attendance-table"><thead><tr><th>WORKER</th><th class="choice-heading choice-8">8 HOURS</th><th class="choice-heading choice-12">12 HOURS</th><th class="choice-heading choice-absent">ABSENT</th></tr></thead><tbody id="attendance-rows"></tbody></table>
         <div class="empty-state" id="attendance-empty" hidden><div class="empty-illustration"><span>♙</span><i>＋</i></div><h3>Add your people first.</h3><p>Your worker list will appear here so you can mark their daily hours.</p><a class="button button-primary button-link" href="/people.html">Go to Peoples</a></div>
       </div>
-      <div class="table-footer"><span>Attendance for each worker and date can be updated at any time.</span><span id="attendance-save-note"></span></div>
+      <div class="table-footer order-controls-footer"><span>Attendance for each worker and date can be updated at any time.</span><span id="attendance-save-note"></span><label class="worker-order" for="worker-order"><span class="sr-only">Worker order</span><select id="worker-order"><option value="alphabetical">Alphabetical</option><option value="added">Added first</option></select></label></div>
     </section>
     <footer class="footer"><span>Made for the people who make it happen <span class="footer-heart">♥</span></span><span>Daybook <span class="footer-separator">·</span> People & pay, in one place</span></footer>
   </main>
