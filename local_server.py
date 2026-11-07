@@ -44,6 +44,12 @@ def initialize():
                 hours INTEGER NOT NULL CHECK (hours IN (0, 8, 11, 12)),
                 PRIMARY KEY (worker_id, work_date)
             );
+            CREATE TABLE IF NOT EXISTS production (
+                work_date TEXT PRIMARY KEY,
+                shoes INTEGER NOT NULL CHECK (shoes >= 0),
+                price_per_pair REAL NOT NULL CHECK (price_per_pair >= 0),
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
         worker_columns = {row["name"] for row in db.execute("PRAGMA table_info(workers)")}
@@ -105,6 +111,9 @@ class Handler(BaseHTTPRequestHandler):
                 if parsed.path == "/api/dashboard":
                     month = parse_qs(parsed.query).get("month", [date.today().strftime("%Y-%m")])[0]
                     self.send_json(200, self.dashboard(month))
+                elif parsed.path == "/api/production":
+                    month = parse_qs(parsed.query).get("month", [date.today().strftime("%Y-%m")])[0]
+                    self.send_json(200, self.production(month))
                 elif parsed.path == "/api/workers":
                     with connect() as db:
                         workers = db.execute(
@@ -172,9 +181,93 @@ class Handler(BaseHTTPRequestHandler):
             },
         }
 
+    def production(self, month):
+        if not MONTH_PATTERN.fullmatch(month):
+            raise APIError(400, "Month must use YYYY-MM format.")
+        try:
+            year, month_number = map(int, month.split("-"))
+            days_in_month = monthrange(year, month_number)[1]
+        except (ValueError, OverflowError):
+            raise APIError(400, "Please choose a valid month.")
+        with connect() as db:
+            rows = db.execute(
+                """SELECT work_date, shoes, price_per_pair
+                   FROM production WHERE work_date BETWEEN ? AND ?
+                   ORDER BY work_date DESC""",
+                (f"{month}-01", f"{month}-{days_in_month:02d}"),
+            ).fetchall()
+        records = [
+            {
+                "date": row["work_date"],
+                "shoes": row["shoes"],
+                "pricePerPair": row["price_per_pair"],
+                "pairs": row["shoes"] / 2,
+                "amount": round(row["shoes"] / 2 * row["price_per_pair"], 2),
+            }
+            for row in rows
+        ]
+        return {
+            "month": month,
+            "records": records,
+            "summary": {
+                "shoes": sum(row["shoes"] for row in records),
+                "pairs": sum(row["pairs"] for row in records),
+                "amount": round(sum(row["amount"] for row in records), 2),
+                "daysRecorded": len(records),
+            },
+        }
+
     def do_POST(self):
         try:
-            if self.path == "/api/workers":
+            if self.path == "/api/production":
+                body = self.read_json()
+                if not isinstance(body, dict):
+                    raise APIError(400, "Please send a valid JSON request.")
+                work_date = body.get("date")
+                shoes = body.get("shoes")
+                price = body.get("pricePerPair")
+                if not isinstance(work_date, str) or not DATE_PATTERN.fullmatch(work_date):
+                    raise APIError(400, "Date must use YYYY-MM-DD format.")
+                try:
+                    date.fromisoformat(work_date)
+                except ValueError:
+                    raise APIError(400, "Please choose a valid date.")
+                if (
+                    isinstance(shoes, bool)
+                    or not isinstance(shoes, int)
+                    or shoes < 0
+                    or shoes > 1_000_000_000
+                ):
+                    raise APIError(400, "Enter a whole number of shoes between 0 and 1,000,000,000.")
+                if (
+                    isinstance(price, bool)
+                    or not isinstance(price, (int, float))
+                    or not math.isfinite(price)
+                    or price < 0
+                    or price > 1_000_000_000
+                ):
+                    raise APIError(400, "Enter a valid price per pair.")
+                with connect() as db:
+                    db.execute(
+                        """INSERT INTO production (work_date, shoes, price_per_pair, updated_at)
+                           VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                           ON CONFLICT(work_date) DO UPDATE SET
+                               shoes = excluded.shoes,
+                               price_per_pair = excluded.price_per_pair,
+                               updated_at = CURRENT_TIMESTAMP""",
+                        (work_date, shoes, price),
+                    )
+                self.send_json(
+                    200,
+                    {
+                        "date": work_date,
+                        "shoes": shoes,
+                        "pairs": shoes / 2,
+                        "pricePerPair": price,
+                        "amount": round(shoes / 2 * price, 2),
+                    },
+                )
+            elif self.path == "/api/workers":
                 body = self.read_json()
                 name = body.get("name", "").strip() if isinstance(body.get("name"), str) else ""
                 role = body.get("role", "").strip() if isinstance(body.get("role"), str) else ""

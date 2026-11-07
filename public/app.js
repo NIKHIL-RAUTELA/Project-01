@@ -34,6 +34,14 @@ let openWorkerDialog;
 let refreshBulkButtons = () => {};
 let selectedMonth = currentMonth();
 let selectedWorkDate = null;
+let productionMonth = (() => {
+  const queryMonth = new URLSearchParams(location.search).get("month");
+  if (validMonth(queryMonth)) return queryMonth;
+  const savedMonth = localStorage.getItem("daybook-production-month");
+  return validMonth(savedMonth) ? savedMonth : monthOf(localDate(today));
+})();
+let productionRecords = [];
+let productionRequestId = 0;
 const workerOrderKey = "daybook-worker-order";
 const workerOrderPreference = localStorage.getItem(workerOrderKey);
 let selectedWorkerOrder = workerOrderPreference === "added" ? "added" : "alphabetical";
@@ -198,6 +206,72 @@ function renderSalary() {
       <td class="earned-cell">${currency(worker.earned)}</td>
     </tr>`;
   }).join("");
+}
+
+function formatPairs(pairs) {
+  return new Intl.NumberFormat("en-IN", { maximumFractionDigits: 1 }).format(pairs);
+}
+
+function updateProductionPreview() {
+  const shoes = Number($("#production-shoes-input").value);
+  const price = Number($("#production-price").value);
+  const validShoes = Number.isSafeInteger(shoes) && shoes >= 0;
+  const validPrice = Number.isFinite(price) && price >= 0;
+  const pairs = validShoes ? shoes / 2 : 0;
+  $("#production-pairs-preview").textContent = formatPairs(pairs);
+  $("#production-amount-preview").textContent = currency(validShoes && validPrice ? pairs * price : 0);
+}
+
+function populateProductionDate(value) {
+  const record = productionRecords.find((item) => item.date === value);
+  $("#production-shoes-input").value = record ? record.shoes : "0";
+  $("#production-price").value = record ? record.pricePerPair : "7";
+  updateProductionPreview();
+}
+
+function renderProduction(result) {
+  const { records, summary } = result;
+  productionRecords = records;
+  $("#production-shoes").textContent = new Intl.NumberFormat("en-IN").format(summary.shoes);
+  $("#production-pairs").textContent = formatPairs(summary.pairs);
+  $("#production-amount").textContent = currency(summary.amount);
+  $("#production-days").textContent = summary.daysRecorded;
+  $("#production-count").textContent = `${summary.daysRecorded} ${summary.daysRecorded === 1 ? "day" : "days"} recorded`;
+  $("#production-month-total").textContent = `${currency(summary.amount)} this month`;
+  $("#production-empty").hidden = records.length > 0;
+  $("#production-table").hidden = records.length === 0;
+  $("#production-rows").innerHTML = records.map((record) => {
+    const prettyDate = new Intl.DateTimeFormat("en", {
+      weekday: "short", month: "short", day: "numeric", year: "numeric",
+    }).format(new Date(`${record.date}T12:00:00`));
+    return `<tr>
+      <td>${prettyDate}</td>
+      <td>${new Intl.NumberFormat("en-IN").format(record.shoes)}</td>
+      <td>${formatPairs(record.pairs)}</td>
+      <td>${currency(record.pricePerPair)}</td>
+      <td class="earned-cell">${currency(record.amount)}</td>
+      <td><button class="edit-button" type="button" data-edit-production="${record.date}">Edit</button></td>
+    </tr>`;
+  }).join("");
+}
+
+async function loadProduction(month = productionMonth) {
+  productionMonth = validMonth(month) ? month : monthOf(localDate(today));
+  localStorage.setItem("daybook-production-month", productionMonth);
+  $("#production-month").value = productionMonth;
+  const selectedDate = $("#production-date");
+  if (!selectedDate.value.startsWith(`${productionMonth}-`)) {
+    selectedDate.value = `${productionMonth}-01`;
+  }
+  const requestId = ++productionRequestId;
+  try {
+    const result = await request(`/api/production?month=${encodeURIComponent(productionMonth)}`);
+    if (requestId !== productionRequestId) return;
+    renderProduction(result);
+    populateProductionDate(selectedDate.value);
+  } catch (error) {
+    if (requestId === productionRequestId) showToast(error.message, true);
+  }
 }
 
 function render() {
@@ -440,8 +514,69 @@ if (page === "people") {
   });
 }
 
+if (page === "production") {
+  const productionMonthInput = $("#production-month");
+  const productionDateInput = $("#production-date");
+  const productionForm = $("#production-form");
+  productionDateInput.value = localDate(today);
+  productionMonthInput.value = productionMonth;
+  productionDateInput.addEventListener("change", () => {
+    populateProductionDate(productionDateInput.value);
+  });
+  productionMonthInput.addEventListener("change", () => {
+    if (validMonth(productionMonthInput.value)) {
+      void loadProduction(productionMonthInput.value);
+    }
+  });
+  for (const input of [$("#production-shoes-input"), $("#production-price")]) {
+    input.addEventListener("input", updateProductionPreview);
+  }
+  productionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(productionForm);
+    const shoes = Number(form.get("shoes"));
+    const pricePerPair = Number(form.get("price"));
+    if (
+      !validDate(form.get("date"))
+      || !Number.isSafeInteger(shoes)
+      || shoes < 0
+      || !Number.isFinite(pricePerPair)
+      || pricePerPair < 0
+    ) {
+      showToast("Enter a valid date, whole shoe count, and price per pair.", true);
+      return;
+    }
+    const submit = $("#save-production");
+    submit.disabled = true;
+    try {
+      await request("/api/production", {
+        method: "POST",
+        body: JSON.stringify({
+          date: form.get("date"),
+          shoes,
+          pricePerPair,
+        }),
+      });
+      await loadProduction(productionMonth);
+      showToast("Daily production saved.");
+    } catch (error) {
+      showToast(error.message, true);
+    } finally {
+      submit.disabled = false;
+    }
+  });
+  $("#production-rows").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-edit-production]");
+    if (!button) return;
+    productionDateInput.value = button.dataset.editProduction;
+    populateProductionDate(productionDateInput.value);
+    productionDateInput.focus();
+  });
+  void loadProduction(productionMonth);
+}
+
 function $$(selector) {
   return [...document.querySelectorAll(selector)];
 }
 
-loadDashboard(selectedMonth);
+if (page !== "production") loadDashboard(selectedMonth);

@@ -130,6 +130,15 @@ def initialize():
             )""",
             (),
         ),
+        (
+            """CREATE TABLE IF NOT EXISTS production (
+                work_date TEXT PRIMARY KEY,
+                shoes INTEGER NOT NULL CHECK (shoes >= 0),
+                price_per_pair REAL NOT NULL CHECK (price_per_pair >= 0),
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )""",
+            (),
+        ),
     ])
     worker_columns = _execute([
         ("SELECT name FROM pragma_table_info('workers')", ()),

@@ -88,6 +88,90 @@ async def _dispatch(request, route_path):
         month = request.query_params.get("month", date.today().strftime("%Y-%m"))
         return _dashboard(month)
 
+    if method == "GET" and path == "production":
+        month = request.query_params.get("month", date.today().strftime("%Y-%m"))
+        if not MONTH_PATTERN.fullmatch(month):
+            raise APIError(400, "Month must use YYYY-MM format.")
+        try:
+            year, month_number = map(int, month.split("-"))
+            days_in_month = monthrange(year, month_number)[1]
+        except (ValueError, OverflowError):
+            raise APIError(400, "Please choose a valid month.")
+        records = turso.query(
+            """SELECT work_date, shoes, price_per_pair
+               FROM production WHERE work_date BETWEEN ? AND ?
+               ORDER BY work_date DESC""",
+            (f"{month}-01", f"{month}-{days_in_month:02d}"),
+        )
+        entries = [
+            {
+                "date": record["work_date"],
+                "shoes": record["shoes"],
+                "pricePerPair": record["price_per_pair"],
+                "pairs": record["shoes"] / 2,
+                "amount": round(record["shoes"] / 2 * record["price_per_pair"], 2),
+            }
+            for record in records
+        ]
+        return {
+            "month": month,
+            "records": entries,
+            "summary": {
+                "shoes": sum(record["shoes"] for record in entries),
+                "pairs": sum(record["pairs"] for record in entries),
+                "amount": round(sum(record["amount"] for record in entries), 2),
+                "daysRecorded": len(entries),
+            },
+        }
+
+    if method == "POST" and path == "production":
+        try:
+            body = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            raise APIError(400, "Please send a valid JSON request.")
+        if not isinstance(body, dict):
+            raise APIError(400, "Please send a valid JSON request.")
+        work_date = body.get("date")
+        shoes = body.get("shoes")
+        price = body.get("pricePerPair")
+        if not isinstance(work_date, str) or not DATE_PATTERN.fullmatch(work_date):
+            raise APIError(400, "Date must use YYYY-MM-DD format.")
+        try:
+            date.fromisoformat(work_date)
+        except ValueError:
+            raise APIError(400, "Please choose a valid date.")
+        if (
+            isinstance(shoes, bool)
+            or not isinstance(shoes, int)
+            or shoes < 0
+            or shoes > 1_000_000_000
+        ):
+            raise APIError(400, "Enter a whole number of shoes between 0 and 1,000,000,000.")
+        if (
+            isinstance(price, bool)
+            or not isinstance(price, (int, float))
+            or not math.isfinite(price)
+            or price < 0
+            or price > 1_000_000_000
+        ):
+            raise APIError(400, "Enter a valid price per pair.")
+        turso.execute(
+            """INSERT INTO production (work_date, shoes, price_per_pair, updated_at)
+               VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT(work_date) DO UPDATE SET
+                   shoes = excluded.shoes,
+                   price_per_pair = excluded.price_per_pair,
+                   updated_at = CURRENT_TIMESTAMP""",
+            (work_date, shoes, price),
+        )
+        return {
+            "date": work_date,
+            "shoes": shoes,
+            "pairs": shoes / 2,
+            "pricePerPair": price,
+            "amount": round(shoes / 2 * price, 2),
+        }
+
     if method == "GET" and path == "workers":
         workers = turso.query(
             "SELECT id, name, role, salary, standard_hours FROM workers ORDER BY name COLLATE NOCASE"

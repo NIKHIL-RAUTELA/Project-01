@@ -174,6 +174,54 @@ h1 span,
   box-shadow: 0 12px 32px #00000017, inset 0 1px #ffffff08;
 }
 
+.production-entry-panel {
+  border-color: #252c3b;
+  background: linear-gradient(145deg, #151b29, #111622);
+  box-shadow: 0 12px 32px #00000017, inset 0 1px #ffffff08;
+}
+
+.production-form .form-field {
+  display: grid;
+  gap: 7px;
+  color: #d5d8e5;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.production-form .form-field > input,
+.production-form .salary-input {
+  border-color: #343b4e;
+  background: #111724;
+  color: #e8e9f2;
+  color-scheme: dark;
+}
+
+.production-form .salary-input span {
+  border-color: #353c4e;
+  color: #bba8f1;
+}
+
+.production-form .salary-input input {
+  background: transparent;
+  color: #e8e9f2;
+}
+
+.production-preview {
+  border-color: #2a3040;
+  background: #121826;
+  color: #9299ac;
+}
+
+.production-preview strong {
+  color: #e2e4ef;
+}
+
+.production-form .form-field > input:focus,
+.production-form .salary-input:focus-within {
+  outline: 2px solid #ad96f4;
+  outline-offset: 2px;
+}
+
 .stat-dark {
   border-color: #3a3157;
   background:
@@ -596,6 +644,10 @@ tbody tr:hover {
 .salary-note {
   background: #23223a;
   color: #b3b6c8;
+}
+
+.production-entry-panel .section-heading p {
+  color: #9aa1b4;
 }
 
 .dialog-actions {

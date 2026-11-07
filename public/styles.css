@@ -16,6 +16,19 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
 .order-footer{justify-content:flex-end}
 .table-footer .worker-order{margin-left:auto;flex:none}
 .home-panel,.data-panel{padding:21px 21px 0;margin-bottom:20px}
+.production-entry-panel{padding:21px;margin-bottom:20px}
+.production-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:end;gap:14px}
+.production-form .form-field{margin:0}
+.production-form .form-field input{width:100%;height:36px;border:1px solid #eae8f0;border-radius:6px;background:#fff;padding:0 10px;font:500 10px "DM Sans",sans-serif}
+.production-form .salary-input{height:36px;background:#fff;border:1px solid #eae8f0}
+.production-form .salary-input input{height:34px;border:0}
+.production-preview{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;min-height:37px;padding:0 12px;border:1px solid #efedf4;border-radius:7px;color:#9292a2;font-size:10px}
+.production-preview strong{color:#45455b;font-size:11px;font-weight:600}
+.production-form>.button{justify-self:end}
+.production-footer{justify-content:space-between}
+.production-summary{grid-template-columns:repeat(4,minmax(0,1fr))}
+.production-entry-panel .section-heading{margin-bottom:18px}
+.production-entry-panel .form-field>input:focus,.production-entry-panel .salary-input:focus-within{outline:2px solid #d5c9f5;outline-offset:1px}
 .home-panel .section-heading,.data-panel .section-heading{margin-bottom:15px}
 .quick-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;padding:2px 0 20px}
 .quick-link{display:flex;align-items:center;gap:10px;min-height:74px;padding:12px;border:1px solid #efedf4;border-radius:8px;color:#36364c;text-decoration:none;transition:background .15s,border-color .15s}
@@ -61,6 +74,12 @@ input[type="text"],input[type="number"],input[type="email"],input[type="password
   .quick-links{grid-template-columns:1fr}
   .quick-link{min-height:62px}
   .home-panel,.data-panel{padding:16px 12px 0}
+  .production-entry-panel{padding:16px 12px}
+  .production-form{grid-template-columns:1fr 1fr}
+  .production-form .form-field:first-child{grid-column:span 2}
+  .production-preview{grid-column:span 2}
+  .production-form>.button{grid-column:span 2;justify-self:stretch}
+  .production-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
   .page-heading>.date-controls{width:auto;align-self:flex-end}
   .page-heading>.date-controls input{flex:initial;min-width:0;width:138px}
   .month-toolbar{margin:0 0 12px}
